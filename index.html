@@ -2245,7 +2245,7 @@ video {
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-black text-lg">SC</div>
-                <div><h1 class="text-xs font-bold text-brand-800 uppercase">Unidad Educativa Fiscomisional</h1><h2 class="text-base md:text-lg font-black">SAGRADO CORAZÓN</h2><p class="text-[9px] text-slate-500">Esmeraldas</p></div>
+                <div><h1 class="text-xs font-bold text-brand-800 uppercase">Institución educativa</h1><h2 id="nombre-institucion-membrete" class="text-base md:text-lg font-black">Institución no configurada</h2><p class="text-[9px] text-slate-500">Esmeraldas</p></div>
             </div>
             <div class="text-right"><span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-brand-100 text-brand-700">Período 2026-2027</span><p class="text-[10px] text-slate-400">Código AMIE: 08H00145</p></div>
         </div>
@@ -2269,7 +2269,7 @@ video {
                             onpaste="setTimeout(() => { this.value = normalizarUsuarioCorreoInstitucional(this.value); actualizarVistaPreviaCorreoNPT(); }, 0)"
                             placeholder="usuario"
                             class="flex-1 px-4 py-3 bg-slate-50 border rounded-l-xl text-sm focus:ring-2 focus:ring-brand-500 min-w-0">
-                        <span class="px-3 py-3 bg-brand-600 border border-brand-600 rounded-r-xl text-xs text-white font-bold font-mono whitespace-nowrap flex items-center">@sagradocorazon.edu.ec</span>
+                        <span id="dominio-correo-estudiante" class="px-3 py-3 bg-brand-600 border border-brand-600 rounded-r-xl text-xs text-white font-bold font-mono whitespace-nowrap flex items-center">@dominio-no-configurado</span>
                     </div>
                     <p id="email-vista-previa" class="text-[11px] text-slate-400 mt-1">Solo escribe la parte antes del @, el dominio ya está incluido.</p>
                 </div>
@@ -2293,7 +2293,7 @@ video {
                 </div>
             </div>
             <div class="border-t mt-6 pt-5 flex flex-wrap justify-between items-center gap-3 text-xs text-slate-400">
-                <p>Docente: <strong class="text-slate-600">Ing. César Godoy Rosero, Mgt.</strong></p>
+                <p>Docente: <strong id="nombre-docente-inicial" class="text-slate-600">Docente no configurado</strong></p>
                 <div class="flex items-center gap-3">
                     <span class="inline-flex items-center gap-1 text-slate-500" title="Total de ingresos de estudiantes al sistema"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">👥 <span id="cnt-accesos-estudiantes-general">0</span></span> accesos de estudiantes</span>
                     <button onclick="mostrarAccesoDocente()" class="text-brand-600 font-semibold">🔐 Acceso Docente</button>
@@ -2647,8 +2647,34 @@ video {
                     </section>
                     </div>
 
+                    <div class="sgc-config-category space-y-3" data-config-title="Perfil institucional" data-config-icon="🏛️" data-config-meta="Define el membrete institucional y el dominio de correo estudiantil.">
+                        <h3 class="flex items-center gap-2 border-b border-slate-200 pb-2 text-sm font-bold text-slate-800"><span aria-hidden="true">🏛️</span>Perfil institucional</h3>
+                        <section class="bg-slate-50 rounded-xl p-4">
+                            <p class="text-[11px] text-slate-500 mb-3">Estos datos se muestran en la aplicación y se usan para completar el correo de acceso de los estudiantes.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                                <label class="block text-[11px] font-bold text-slate-600 uppercase">Nombre de la institución
+                                    <input type="text" id="cfg-institucion-nombre" maxlength="160" class="mt-1 w-full px-3 py-2 border rounded-lg bg-white text-sm normal-case" placeholder="Ingresa el nombre de la institución">
+                                </label>
+                                <label class="block text-[11px] font-bold text-slate-600 uppercase">Dominio del correo estudiantil
+                                    <input type="text" id="cfg-institucion-dominio" maxlength="120" class="mt-1 w-full px-3 py-2 border rounded-lg bg-white text-sm normal-case" placeholder="ejemplo.edu.ec">
+                                </label>
+                            </div>
+                            <button onclick="guardarPerfilInstitucional()" class="mt-3 bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-brand-700">💾 Guardar perfil institucional</button>
+                        </section>
+                    </div>
+
                     <div class="sgc-config-category space-y-3" data-config-title="Perfil docente" data-config-icon="🖊️" data-config-meta="Configura la firma de referencia del docente.">
                         <h3 class="flex items-center gap-2 border-b border-slate-200 pb-2 text-sm font-bold text-slate-800"><span aria-hidden="true">🖊️</span>Perfil docente</h3>
+                    <section class="bg-slate-50 rounded-xl p-4">
+                        <h4 class="font-bold text-sm mb-2">👤 Nombre del docente</h4>
+                        <p class="text-[11px] text-slate-500 mb-3">Este nombre se mostrará en la pantalla inicial y en los reportes generados por el sistema.</p>
+                        <div class="flex flex-wrap items-end gap-2">
+                            <label class="flex-1 min-w-56 block text-[11px] font-bold text-slate-600 uppercase">Nombre completo
+                                <input type="text" id="cfg-docente-nombre" maxlength="120" class="mt-1 w-full px-3 py-2 border rounded-lg bg-white text-sm normal-case" placeholder="Ingresa el nombre del docente">
+                            </label>
+                            <button onclick="guardarPerfilDocente()" class="bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-brand-700">💾 Guardar nombre</button>
+                        </div>
+                    </section>
 <!-- (B2) Firma de referencia del docente -->
                     <section class="bg-slate-50 rounded-xl p-4">
                         <h4 class="font-bold text-sm mb-3">🖊️ Firma de referencia del docente</h4>
@@ -3301,7 +3327,6 @@ video {
         const NPT_EXAMEN_TIEMPO_PREGUNTA = 60;    // segundos por pregunta antes de avanzar automáticamente
         const NPT_EXAMEN_TIEMPO_REVISION = 60;    // segundos para revisar respuestas al terminar
         const NPT_EXAMEN_TIEMPO_FINALIZAR = 10;   // segundos para presionar "Finalizar examen"
-        const NPT_NOMBRE_DOCENTE = 'Ing. César Godoy Rosero, Mgt.';
         // Encabezado institucional oficial (escudo + Ministerio de Educación) usado en TODOS los
         // reportes/informes imprimibles. Se guarda como imagen embebida en Base64 para que los
         // reportes (que se abren en una pestaña/ventana aparte, sin acceso a los archivos del
@@ -3656,7 +3681,13 @@ video {
         }
         function correoEstudianteIngresado() {
             const local=normalizarUsuarioCorreoInstitucional(document.getElementById('input-email-local')?.value);
-            return local?local+DOMINIO_INSTITUCIONAL:'';
+            const dominio = dominioCorreoInstitucionalConfigurado();
+            return local && dominio ? local + dominio : '';
+        }
+        function esCorreoInstitucionalValido(correo) {
+            const dominio = dominioCorreoInstitucionalConfigurado().toLowerCase();
+            const email = String(correo || '').trim().toLowerCase();
+            return !!dominio && email.endsWith(dominio) && email.length > dominio.length && !email.slice(0, -dominio.length).includes('@');
         }
         function mensajeErrorRecuperacionFirebase(error) {
             const codigo=`${error?.code||''} ${error?.message||''}`.toUpperCase().replace(/-/g,'_');
@@ -3684,7 +3715,7 @@ video {
         async function registrarCuentaEstudiante() {
             const email=correoEstudianteIngresado(),password=document.getElementById('input-clave-estudiante')?.value||'';
             if(!email) return mostrarEstadoCuentaEstudiante('Escribe primero tu correo institucional.',true);
-            if(!/^[^\s@]+@sagradocorazon\.edu\.ec$/.test(email)) return mostrarEstadoCuentaEstudiante('Usa tu correo institucional completo.',true);
+            if(!esCorreoInstitucionalValido(email)) return mostrarEstadoCuentaEstudiante('Usa tu correo institucional completo.',true);
             if(password.length<8) return mostrarEstadoCuentaEstudiante('Crea una contraseña de al menos 8 caracteres y vuelve a ingresarla en el acceso.',true);
             try {
                 const resp=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(firebaseConfig.apiKey)}`,{
@@ -3704,7 +3735,7 @@ video {
         async function recuperarClaveEstudiante() {
             const email=correoEstudianteIngresado();
             if(!email) return mostrarEstadoCuentaEstudiante('Escribe primero tu correo institucional.',true);
-            if(!/^[^\s@]+@sagradocorazon\.edu\.ec$/.test(email)) return mostrarEstadoCuentaEstudiante('El correo institucional formado por el sistema no es válido. Revisa el usuario que escribiste.',true);
+            if(!esCorreoInstitucionalValido(email)) return mostrarEstadoCuentaEstudiante('El correo institucional formado por el sistema no es válido. Revisa el usuario que escribiste.',true);
             try {
                 await enviarAccionCorreoFirebase({requestType:'PASSWORD_RESET',email});
                 mostrarEstadoCuentaEstudiante('Firebase recibió la solicitud, pero por seguridad no confirma si ese correo tiene una cuenta ni si el mensaje fue entregado. Si nunca creaste la cuenta con “Crear cuenta y establecer contraseña”, la recuperación no puede enviarte un enlace: usa esa opción primero. Tener correo y cédula en la nómina no crea la cuenta de acceso. Si ya tenías cuenta, revisa Spam y confirma que escribiste el usuario institucional correcto. Si no llega en unos minutos, comunica al docente el correo y la hora del intento; no compartas tu contraseña ni códigos.');
@@ -4771,13 +4802,12 @@ video {
         }
 
         // ==================== EVALUACIÓN ====================
-        const DOMINIO_INSTITUCIONAL = '@sagradocorazon.edu.ec';
         // Acepta la parte local o un correo institucional completo pegado en el campo.
         // Solo elimina el dominio institucional exacto para evitar formar una dirección distinta.
         function normalizarUsuarioCorreoInstitucional(valor) {
             let usuario = texto(valor).trim().toLowerCase();
-            const dominio = DOMINIO_INSTITUCIONAL.toLowerCase();
-            if (usuario.endsWith(dominio)) usuario = usuario.slice(0, -dominio.length);
+            const dominio = dominioCorreoInstitucionalConfigurado().toLowerCase();
+            if (dominio && usuario.endsWith(dominio)) usuario = usuario.slice(0, -dominio.length);
             return usuario.trim();
         }
         // Vista previa en vivo del correo institucional completo mientras el estudiante escribe:
@@ -4789,9 +4819,13 @@ video {
             if (!el || !input) return;
             const local = normalizarUsuarioCorreoInstitucional(input.value);
             if (input.value !== local) input.value = local;
-            if (local) {
-                el.textContent = `Tu correo será: ${local}${DOMINIO_INSTITUCIONAL}`;
+            const dominio = dominioCorreoInstitucionalConfigurado();
+            if (local && dominio) {
+                el.textContent = `Tu correo será: ${local}${dominioCorreoInstitucionalConfigurado()}`;
                 el.className = 'text-xs font-bold text-brand-700 mt-1';
+            } else if (!dominio) {
+                el.textContent = 'El dominio institucional aún no está configurado.';
+                el.className = 'text-[11px] text-amber-700 mt-1';
             } else {
                 el.textContent = 'Solo escribe la parte antes del @, el dominio ya está incluido.';
                 el.className = 'text-[11px] text-slate-400 mt-1';
@@ -4806,7 +4840,9 @@ video {
             if(!/^\d{10}$/.test(ced)){mostrarEstadoCuentaEstudiante('Digita una cédula válida de 10 dígitos.',true);return;}
             if(!password){mostrarEstadoCuentaEstudiante('Escribe tu contraseña. Si es tu primer ingreso, pulsa “Crear cuenta y establecer contraseña” para crearla y confirmar el correo. Si ya tenías una contraseña y la olvidaste, pulsa “Olvidé mi contraseña” y revisa también Spam. La cédula no funciona como contraseña.',true);return;}
             document.getElementById('input-cedula').value=ced;
-            const correoCompleto=local+DOMINIO_INSTITUCIONAL;
+            const dominio = dominioCorreoInstitucionalConfigurado();
+            if (!dominio) { mostrarEstadoCuentaEstudiante('El dominio institucional aún no está configurado. Solicita al docente que lo registre en Configuración.', true); return; }
+            const correoCompleto=local+dominio;
             const btn=document.querySelector('#screen-login button[onclick="verificarEstudiante()"]');
             if(btn){btn.disabled=true;btn.dataset.labelOriginal=btn.textContent;btn.textContent='Verificando…';}
             const inicioAcceso=performance.now();
@@ -5878,7 +5914,7 @@ video {
                 <td class="center">${d.ok ? '✅' : '❌'}</td></tr>`).join('');
             const contenido = `
                 <div class="filtro">
-                    <strong>Docente:</strong> ${escapeHtml(NPT_NOMBRE_DOCENTE)}<br>
+                    <strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}<br>
                     <strong>Estudiante:</strong> ${escapeHtml(est?.nombre || reg.nombre || '')}<br>
                     <strong>Curso/Paralelo:</strong> ${escapeHtml(est?.curso||'')} "${escapeHtml(est?.paralelo||'')}"<br>
                     <strong>Período:</strong> ${escapeHtml(t?.label||'')} — <strong>${escapeHtml(etiquetaCampo)}</strong>${esInsumoTest ? ' (🧪 Test)' : ''}<br>
@@ -5917,7 +5953,7 @@ video {
             const aprobo = reg.estadoFinal === 'aprueba';
             const contenido = `
                 <div class="filtro">
-                    <strong>Docente:</strong> ${escapeHtml(NPT_NOMBRE_DOCENTE)}<br>
+                    <strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}<br>
                     <strong>Estudiante:</strong> ${escapeHtml(est?.nombre || reg.nombre || '')}<br>
                     <strong>Curso/Paralelo:</strong> ${escapeHtml(est?.curso||'')} "${escapeHtml(est?.paralelo||'')}"<br>
                     <strong>Período:</strong> Examen Supletorio (Anual)<br>
@@ -6222,6 +6258,15 @@ video {
         let cfgTrimestres = null;       // null = usar NPT_TRIMESTRES por defecto
         let cfgFormulaPromedio = null;  // null = promedio simple
         let cfgFirmaDocente = null;     // null = sin firma registrada. Si existe: { base64, mime, fecha }
+        let cfgPerfilDocente = { nombre: '' };
+        let cfgPerfilInstitucional = { nombre: '', dominioCorreo: '' };
+
+        function normalizarPerfilInstitucional(perfil) {
+            if (!perfil || typeof perfil !== 'object') return null;
+            const nombre = String(perfil.nombre ?? perfil.nombreInstitucion ?? perfil.institucion ?? '').trim();
+            const dominioCorreo = String(perfil.dominioCorreo ?? perfil.dominioInstitucional ?? perfil.dominio ?? '').trim().toLowerCase().replace(/^@+/, '');
+            return { nombre, dominioCorreo };
+        }
 
         // ==================== CONTADORES DE ACCESO ====================
         // Nodos RTDB:
@@ -6237,6 +6282,43 @@ video {
 
         function sanitizarClave(v) {
             return texto(v).trim().replace(/[.#$\/\[\]\s]+/g, '_').toUpperCase() || '_';
+        }
+        function nombreDocenteConfigurado() {
+            return texto(cfgPerfilDocente?.nombre).trim() || 'Docente no configurado';
+        }
+        function actualizarNombreDocenteVisible() {
+            const nombre = document.getElementById('nombre-docente-inicial');
+            if (nombre) nombre.textContent = nombreDocenteConfigurado();
+        }
+        function nombreInstitucionConfigurado() {
+            return texto(cfgPerfilInstitucional?.nombre).trim() || 'Institución no configurada';
+        }
+        function dominioCorreoInstitucionalConfigurado() {
+            const dominio = texto(cfgPerfilInstitucional?.dominioCorreo).trim().toLowerCase().replace(/^@+/, '');
+            return dominio ? `@${dominio}` : '';
+        }
+        function actualizarPerfilInstitucionalVisible() {
+            const nombre = document.getElementById('nombre-institucion-membrete');
+            if (nombre) nombre.textContent = nombreInstitucionConfigurado();
+            const dominio = document.getElementById('dominio-correo-estudiante');
+            if (dominio) dominio.textContent = dominioCorreoInstitucionalConfigurado() || '@dominio-no-configurado';
+            actualizarVistaPreviaCorreoNPT();
+        }
+        async function cargarPerfilInstitucionalDesdeFirebase() {
+            try {
+                const perfil = normalizarPerfilInstitucional(await leerValorRutaFirebase('configuracion/perfilInstitucional'));
+                if (!perfil) return false;
+                cfgPerfilInstitucional = perfil;
+                actualizarPerfilInstitucionalVisible();
+                renderTabConfiguracion();
+                return true;
+            } catch (error) {
+                console.warn('[PERFIL] No se pudo cargar el perfil institucional:', error?.message || error);
+                return false;
+            }
+        }
+        function encabezadoReporteInstitucionalHTML() {
+            return `${NPT_ENCABEZADO_REPORTE_HTML}<p style="margin:0 0 10px;font-weight:bold;text-align:center">${escapeHtml(nombreInstitucionConfigurado())}</p>`;
         }
 
         function unicos(lista) {
@@ -7206,7 +7288,7 @@ video {
             const etiquetaLimpia = texto(s.etiqueta).replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').trim();
             const contenido = `
                 <p style="text-align:right; margin-bottom:24px;">Esmeraldas, ${escapeHtml(nptFechaLargaEs(s.fecha))}</p>
-                <p style="margin-bottom:4px;"><strong>${escapeHtml(NPT_NOMBRE_DOCENTE)}</strong><br>
+                <p style="margin-bottom:4px;"><strong>${escapeHtml(nombreDocenteConfigurado())}</strong><br>
                 DOCENTE DE LA UEFM SAGRADO CORAZÓN<br>
                 Presente. –</p>
                 <p style="text-align:justify; margin-top:18px; line-height:1.6;">
@@ -8305,14 +8387,14 @@ video {
                     } else {
                         const ta = document.querySelector(`.npt-rubrica-insumo[data-insumo-rubrica="${ins.id}"]`);
                         const texto2 = texto(ta?.value).trim();
-                        const registro = { texto: texto2, fecha: new Date().toISOString(), docente: 'Ing. César Godoy Rosero, Mgt.' };
+                        const registro = { texto: texto2, fecha: new Date().toISOString(), docente: nombreDocenteConfigurado() };
                         nptRubricas[cv][pv][trimestre][ins.id] = registro;
                         await guardarValorFirebase(`nptRubricas/${cv}/${pv}/${trimestre}/${ins.id}`, registro);
                         if (ins.recuperacionHabilitado) {
                             const claveRecTexto = nptClaveRecuperacionInsumo(ins.id);
                             const taRec = document.querySelector(`.npt-rubrica-insumo-rec[data-insumo-rubrica-rec="${claveRecTexto}"]`);
                             const textoRec = texto(taRec?.value).trim();
-                            const registroRec = { texto: textoRec, fecha: new Date().toISOString(), docente: 'Ing. César Godoy Rosero, Mgt.' };
+                            const registroRec = { texto: textoRec, fecha: new Date().toISOString(), docente: nombreDocenteConfigurado() };
                             nptRubricas[cv][pv][trimestre][claveRecTexto] = registroRec;
                             await guardarValorFirebase(`nptRubricas/${cv}/${pv}/${trimestre}/${claveRecTexto}`, registroRec);
                         }
@@ -10023,7 +10105,7 @@ video {
                         nota:Math.round(Number(evaluacionIA.nota)*100)/100,
                         observacion:texto(evaluacionIA.comentario||''),
                         fechaNota:evaluacionIA.fecha||new Date().toISOString(),
-                        docente:NPT_NOMBRE_DOCENTE,cedula,
+                        docente:nombreDocenteConfigurado(),cedula,
                         nombre:estudiantes.find(e=>e.cedula===cedula)?.nombre||'',
                         trimestre:numTrimestre,tipo,origen:null
                     } : null);
@@ -10122,7 +10204,7 @@ video {
             const authOk = await ensureAuth();
             const observacion = {
                 fecha: new Date().toISOString(),
-                docente: 'Ing. César Godoy Rosero, Mgt.',
+                docente: nombreDocenteConfigurado(),
                 motivo: motivo.trim()
             };
             try {
@@ -10700,20 +10782,19 @@ video {
         function sgcSolRecuperacionYaRendida(it) {
             return notaNPTDe(it.cedula, it.num, claveRecuperacionNPT(it.clave)) !== null;
         }
-        const SGC_DOCENTE_RESPUESTA = 'Ing. César Godoy Rosero, Mgt.';
         async function sgcSolEjecutarAprobacion(it) {
             const h = sgcSolRutaHabilitacion(it);
             await guardarValorFirebase(h.ruta, true);
             let nodo = h.base;
             h.camino.forEach(k => { if (!nodo[k] || typeof nodo[k] !== 'object') nodo[k] = {}; nodo = nodo[k]; });
             nodo[it.cedula] = true;
-            const registro = { ...it.s, estado: 'aprobada', fechaRespuesta: new Date().toISOString(), docenteRespuesta: SGC_DOCENTE_RESPUESTA };
+            const registro = { ...it.s, estado: 'aprobada', fechaRespuesta: new Date().toISOString(), docenteRespuesta: nombreDocenteConfigurado() };
             delete registro.motivoRespuesta;
             await guardarValorFirebase(`nptSolicitudesRecuperacion/${it.cedula}/trimestre${it.num}/${it.clave}`, registro);
             sgcSolGuardarLocal(it.cedula, it.num, it.clave, registro);
         }
         async function sgcSolEjecutarRechazo(it, motivo) {
-            const registro = { ...it.s, estado: 'rechazada', fechaRespuesta: new Date().toISOString(), docenteRespuesta: SGC_DOCENTE_RESPUESTA, motivoRespuesta: motivo };
+            const registro = { ...it.s, estado: 'rechazada', fechaRespuesta: new Date().toISOString(), docenteRespuesta: nombreDocenteConfigurado(), motivoRespuesta: motivo };
             await guardarValorFirebase(`nptSolicitudesRecuperacion/${it.cedula}/trimestre${it.num}/${it.clave}`, registro);
             sgcSolGuardarLocal(it.cedula, it.num, it.clave, registro);
         }
@@ -10865,7 +10946,7 @@ video {
             if (!filas.length) { sgcFwToast(win, 'No hay solicitudes para exportar.', 'info'); return; }
             // Evita que Excel interprete como fórmula un texto escrito por el representante (=, +, -, @).
             const seguro = (v) => { const x = texto(v); return csvCampo(/^[=+\-@\t\r]/.test(x) ? "'" + x : x); };
-            let csv = 'Docente,' + csvCampo(NPT_NOMBRE_DOCENTE) + '\n\nEstudiante,Cédula,Curso,Paralelo,Trimestre,Evaluación,Estado,Nota original,Motivo,Representante,Cédula representante,Fecha solicitud,Fecha respuesta,Motivo de rechazo\n';
+            let csv = 'Docente,' + csvCampo(nombreDocenteConfigurado()) + '\n\nEstudiante,Cédula,Curso,Paralelo,Trimestre,Evaluación,Estado,Nota original,Motivo,Representante,Cédula representante,Fecha solicitud,Fecha respuesta,Motivo de rechazo\n';
             filas.forEach(e => {
                 const s = e.s;
                 const t = trimestresEfectivos().find(x => x.num === e.num);
@@ -11017,7 +11098,7 @@ video {
                 nota: Math.round(rawNota * 100) / 100,
                 observacion: obs,
                 fechaNota: new Date().toISOString(),
-                docente: 'Ing. César Godoy Rosero, Mgt.',
+                docente: nombreDocenteConfigurado(),
                 cedula, nombre, trimestre, tipo,
                 verificado,
                 fechaVerificacion: verificado ? new Date().toISOString() : null,
@@ -11135,7 +11216,7 @@ video {
             });
             const materia = asignaturasReporteCurso(cursoActual, paraleloActual);
             abrirPrevisualizacionFilas('entregas_recibidas_' + fechaArchivo() + '.xlsx', filas, null,
-                [['Docente', NPT_NOMBRE_DOCENTE], ['Curso', cursoActual], ['Paralelo', paraleloActual], ['Materia', materia], ['Trimestre', filtroT || 'Todos los trimestres']]);
+                [['Docente', nombreDocenteConfigurado()], ['Curso', cursoActual], ['Paralelo', paraleloActual], ['Materia', materia], ['Trimestre', filtroT || 'Todos los trimestres']]);
         }
         // ---- Pantalla estudiante NPT (hub único) ----
         function irANPT() {
@@ -12076,7 +12157,7 @@ video {
         }
         function sgcFilasReporteHtml(titulo, contenido) {
             const doc = new DOMParser().parseFromString('<!doctype html><html><body><main>' + contenido + '</main></body></html>', 'text/html');
-            const filas = [[titulo], ['Docente', NPT_NOMBRE_DOCENTE], ['Generado', nptFormatoFechaHora(new Date())], []];
+            const filas = [[titulo], ['Docente', nombreDocenteConfigurado()], ['Generado', nptFormatoFechaHora(new Date())], []];
             doc.querySelectorAll('h1,h2,h3,p,.filtro,table').forEach(nodo => {
                 if (nodo.tagName === 'TABLE') {
                     nodo.querySelectorAll('tr').forEach(tr => {
@@ -12213,10 +12294,10 @@ video {
 
 </head>
 <body>
-    ${NPT_ENCABEZADO_REPORTE_HTML}
+    ${encabezadoReporteInstitucionalHTML()}
     <header>
         <h1>${escapeHtml(titulo)}</h1>
-        <div class="meta"><strong>Docente:</strong> ${escapeHtml(NPT_NOMBRE_DOCENTE)}</div>
+        <div class="meta"><strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}</div>
         <div class="meta">Generado: ${escapeHtml(nptFormatoFechaHora(new Date()))}</div>
     </header>
     <div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
@@ -12329,7 +12410,7 @@ video {
             if (!validarFiltroReporte()) return;
             const listaEvaluaciones = calificacionesFiltradas();
             if(!listaEvaluaciones.length) { alert("No hay evaluaciones para exportar en el filtro seleccionado."); return; }
-            let csv = 'Docente,' + csvCampo(NPT_NOMBRE_DOCENTE) + "\n\nEstudiante,Curso,Paralelo,Nota,Fecha\n";
+            let csv = 'Docente,' + csvCampo(nombreDocenteConfigurado()) + "\n\nEstudiante,Curso,Paralelo,Nota,Fecha\n";
             listaEvaluaciones.forEach(c => {
                 let est = estudiantes.find(e => e.cedula === c.cedula);
                 csv += [
@@ -12645,7 +12726,7 @@ video {
                 const entrada = {
                     accion, detalle,
                     fecha: new Date().toISOString(),
-                    docente: 'Ing. César Godoy Rosero, Mgt.'
+                    docente: nombreDocenteConfigurado()
                 };
                 const key = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 await guardarValorFirebase(`auditoria/${key}`, entrada);
@@ -12722,23 +12803,48 @@ video {
             }
         }
 
+        async function leerCamposConfiguracionFirebase(campos, lector) {
+            const leer = lector || (campo => leerValorRutaFirebase('configuracion/' + campo));
+            const pares = await Promise.all(campos.map(async campo => {
+                try {
+                    return [campo, await leer(campo)];
+                } catch (error) {
+                    console.warn('No se pudo leer configuracion/' + campo + ':', error);
+                    return [campo, undefined];
+                }
+            }));
+            return Object.fromEntries(pares);
+        }
+
         async function cargarConfigSistema(opciones = {}) {
             cfgMaxSolicitudesRecuperacion = null;
             cfgMaxSolicitudesRecuperacionError = false;
             cfgPeriodoActivo = null;
             try {
+                const perfilInstitucionalCargado = await cargarPerfilInstitucionalDesdeFirebase();
                 // Leer solo las ramas que usa esta función y en paralelo evita descargar
                 // de una sola vez configuración extensa (por ejemplo, el historial curricular).
                 const campos = opciones.soloEsencialEstudiante && !esSesionDocenteFirebase()
-                    ? ['periodoActivo','trimestres','formulaPromedio','firmaDocente','horarioDocente']
-                    : ['periodoActivo','trimestres','formulaPromedio','firmaDocente','planificacionesCurriculares','calendarioAcademico','horarioDocente','contadores'];
-                const pares = await Promise.all(campos.map(async campo => [campo, await leerValorRutaFirebase(`configuracion/${campo}`)]));
-                const cfg = Object.fromEntries(pares);
+                    ? ['periodoActivo','trimestres','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','horarioDocente']
+                    : ['periodoActivo','trimestres','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','planificacionesCurriculares','calendarioAcademico','horarioDocente','contadores'];
+                const cfg = await leerCamposConfiguracionFirebase(campos, campo =>
+                    leerValorRutaFirebase(`configuracion/${campo}`)
+                );
                 cfgPeriodoActivo = (cfg && cfg.periodoActivo) || null;
                 await cargarMaxSolicitudesRecuperacionPeriodoActivo();
                 await sincronizarMaximoPeriodoActivoParaLecturaEstudiante();
                 cfgTrimestres = (cfg && cfg.trimestres) || null;
                 cfgFormulaPromedio = (cfg && cfg.formulaPromedio) || null;
+                const perfilInstitucional = normalizarPerfilInstitucional(cfg?.perfilInstitucional);
+                if (perfilInstitucional) {
+                    cfgPerfilInstitucional = perfilInstitucional;
+                    actualizarPerfilInstitucionalVisible();
+                } else if (!perfilInstitucionalCargado) {
+                    cfgPerfilInstitucional = { nombre: '', dominioCorreo: '' };
+                    actualizarPerfilInstitucionalVisible();
+                }
+                cfgPerfilDocente = (cfg && cfg.perfilDocente && typeof cfg.perfilDocente === 'object') ? cfg.perfilDocente : { nombre: '' };
+                actualizarNombreDocenteVisible();
                 if (!opciones.soloEsencialEstudiante || esSesionDocenteFirebase()) {
                     cfgFirmaDocente = (cfg && cfg.firmaDocente) || null;
                     planificacionesCurriculares = (cfg && cfg.planificacionesCurriculares) || {};
@@ -13373,6 +13479,12 @@ video {
         }
 
         function renderTabConfiguracion() {
+            const inputNombreInstitucion = document.getElementById('cfg-institucion-nombre');
+            const inputDominioInstitucion = document.getElementById('cfg-institucion-dominio');
+            if (inputNombreInstitucion) inputNombreInstitucion.value = texto(cfgPerfilInstitucional?.nombre).trim();
+            if (inputDominioInstitucion) inputDominioInstitucion.value = texto(cfgPerfilInstitucional?.dominioCorreo).trim().replace(/^@+/, '');
+            const inputNombreDocente = document.getElementById('cfg-docente-nombre');
+            if (inputNombreDocente) inputNombreDocente.value = texto(cfgPerfilDocente?.nombre).trim();
             // (A) Período activo
             const inputP = document.getElementById('cfg-periodo-nombre');
             const estadoP = document.getElementById('cfg-periodo-estado');
@@ -13993,6 +14105,41 @@ video {
         }
 
         // ---- Firma de referencia del docente ----
+        async function guardarPerfilInstitucional() {
+            const nombre = texto(document.getElementById('cfg-institucion-nombre')?.value).trim();
+            const dominioCorreo = texto(document.getElementById('cfg-institucion-dominio')?.value).trim().toLowerCase().replace(/^@+/, '');
+            if (!nombre) return alert('Ingresa el nombre de la institución.');
+            if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(dominioCorreo)) return alert('Ingresa un dominio válido, sin @. Ejemplo: institucion.edu.ec');
+            const registro = { nombre, dominioCorreo, actualizadoEn: new Date().toISOString() };
+            if (!await ensureAuth()) return alert('No se pudo autenticar al docente.');
+            try {
+                await guardarValorFirebase('configuracion/perfilInstitucional', registro);
+                await registrarAuditoria('perfil_institucional', 'Perfil institucional actualizado');
+                cfgPerfilInstitucional = registro;
+                actualizarPerfilInstitucionalVisible();
+                alert('✅ Perfil institucional guardado.');
+            } catch(e) {
+                console.error(e);
+                alert('No se pudo guardar el perfil institucional.');
+            }
+        }
+        async function guardarPerfilDocente() {
+            const input = document.getElementById('cfg-docente-nombre');
+            const nombre = texto(input?.value).trim();
+            if (!nombre) return alert('Ingresa el nombre del docente.');
+            const registro = { nombre, actualizadoEn: new Date().toISOString() };
+            if (!await ensureAuth()) return alert('No se pudo autenticar al docente.');
+            try {
+                await guardarValorFirebase('configuracion/perfilDocente', registro);
+                await registrarAuditoria('perfil_docente', 'Nombre del docente actualizado');
+                cfgPerfilDocente = registro;
+                actualizarNombreDocenteVisible();
+                alert('✅ Nombre del docente guardado.');
+            } catch(e) {
+                console.error(e);
+                alert('No se pudo guardar el nombre del docente.');
+            }
+        }
         function renderFirmaDocentePreview() {
             const cont = document.getElementById('cfg-firma-preview');
             if (!cont) return;
@@ -14471,10 +14618,10 @@ video {
                 </style>
                 
 </head><body>
-                ${NPT_ENCABEZADO_REPORTE_HTML}
+                ${encabezadoReporteInstitucionalHTML()}
                 <h1>Notas del Trimestre (NPT)</h1>
                 <table>
-                    <tr><th>Docente</th><td>${escapeHtml(NPT_NOMBRE_DOCENTE)}</td></tr>
+                    <tr><th>Docente</th><td>${escapeHtml(nombreDocenteConfigurado())}</td></tr>
                     <tr><th>Estudiante</th><td>${escapeHtml(estudianteActual.nombre)}</td></tr>
 
                     <tr><th>Curso / Paralelo</th><td>${escapeHtml(estudianteActual.curso)} "${escapeHtml(estudianteActual.paralelo)}"</td></tr>
@@ -14609,6 +14756,8 @@ video {
         window.asignarPeriodoActivoALegacy = asignarPeriodoActivoALegacy;
         window.registrarAccesoEstudiante = registrarAccesoEstudiante;
         window.registrarAccesoDocente = registrarAccesoDocente;
+        window.guardarPerfilInstitucional = guardarPerfilInstitucional;
+        window.guardarPerfilDocente = guardarPerfilDocente;
         window.procesarRestauracionBackup = procesarRestauracionBackup;
         // Reportes NPT
         window.generarReporteNPTPorTrimestre = generarReporteNPTPorTrimestre;
@@ -14678,7 +14827,9 @@ video {
         document.getElementById('npt-classroom-btn-save')?.addEventListener('click', nptClassroomGuardarClientId);
         document.addEventListener('click', event => { const button=event.target.closest?.('#npt-classroom-btn-connect, #npt-classroom-insumo-connect'); if(button){event.preventDefault();nptClassroomConectar();} });
         document.getElementById('npt-classroom-btn-pending')?.addEventListener('click', nptClassroomEnviarPendientes);        document.addEventListener('DOMContentLoaded', nptClassroomInit);
-        iniciarFirebase();
+        iniciarFirebase()
+            .then(() => cargarPerfilInstitucionalDesdeFirebase())
+            .catch(error => console.warn('[PERFIL] No se pudo inicializar la carga pública del perfil institucional:', error?.message || error));
     </script>
 </body>
 </html>
