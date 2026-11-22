@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!-- Rendimiento: abre las conexiones a los servicios externos antes de que se necesiten -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://sgc-docentes-default-rtdb.firebaseio.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
 
 <!-- Código de instalación Cliengo para https://godoyroseroia.github.io/AGENTE/ -->
 <script type="text/javascript">
@@ -2244,10 +2249,10 @@ video {
     <header class="bg-white/90 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-black text-lg">SC</div>
+                <div id="siglas-institucion" class="min-w-[2.5rem] h-10 px-2 bg-brand-600 rounded-xl flex items-center justify-center text-white font-black text-sm tracking-wide" title="Siglas de la institución">—</div>
                 <div><h1 class="text-xs font-bold text-brand-800 uppercase">Institución educativa</h1><h2 id="nombre-institucion-membrete" class="text-base md:text-lg font-black">Institución no configurada</h2><p class="text-[9px] text-slate-500">Esmeraldas</p></div>
             </div>
-            <div class="text-right"><span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-brand-100 text-brand-700">Período 2026-2027</span><p class="text-[10px] text-slate-400">Código AMIE: 08H00145</p></div>
+            <div class="text-right"><span id="badge-periodo-cabecera" class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-brand-100 text-brand-700">Período …</span><p id="ubicacion-geo" class="text-[10px] text-slate-400" title="Ubicación aproximada según la conexión de red">📍 Ubicando…</p></div>
         </div>
     </header>
 
@@ -2280,10 +2285,17 @@ video {
                 </div>
                 <div>
                     <label for="input-clave-estudiante" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contraseña del sistema</label>
-                    <input type="password" id="input-clave-estudiante" autocomplete="current-password" oninput="ocultarAvisosLoginEstudiante()"
-                        class="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500"
-                        placeholder="Contraseña del sistema">
+                    <div class="relative">
+                        <input type="password" id="input-clave-estudiante" autocomplete="current-password" oninput="ocultarAvisosLoginEstudiante()"
+                            class="w-full pl-4 pr-12 py-3 bg-slate-50 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500"
+                            placeholder="Contraseña del sistema">
+                        <button type="button" onclick="alternarVisibilidadClave('input-clave-estudiante', this)" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"
+                            class="btn-ver-clave absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-brand-600 focus:outline-none focus:text-brand-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
                 </div>
+                <div id="aviso-perfil-no-configurado" class="hidden bg-amber-50 border border-amber-300 text-amber-800 p-3 rounded-xl text-sm" role="alert" aria-live="polite"></div>
                 <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-sm flex items-start gap-2" role="alert" aria-live="assertive"><svg class="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/></svg><span id="login-error-text" class="min-w-0 leading-relaxed">Datos no registrados</span></div>
                 <div id="login-status" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 p-2 rounded-xl text-sm" role="status" aria-live="polite"></div>
                 <button onclick="verificarEstudiante()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl shadow-md transition-all">Validar y Continuar</button>
@@ -2305,7 +2317,7 @@ video {
         <!-- Acceso docente -->
         <div id="screen-docente-login" class="hidden w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6">
             <div class="text-center mb-5"><span class="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Administración</span><h3 class="text-xl font-bold mt-2">Autenticación Docente</h3></div>
-            <label for="input-email-docente" class="block text-xs font-semibold text-slate-600 mb-1">Correo de Firebase</label><input type="email" id="input-email-docente" autocomplete="username" placeholder="docente@institucion.edu" class="w-full p-3 bg-slate-50 border rounded-xl mb-3"><label for="input-clave-docente" class="block text-xs font-semibold text-slate-600 mb-1">Contraseña del sistema</label><input type="password" id="input-clave-docente" autocomplete="current-password" placeholder="Contraseña del sistema" class="w-full p-3 bg-slate-50 border rounded-xl mb-3">
+            <label for="input-email-docente" class="block text-xs font-semibold text-slate-600 mb-1">Correo de Firebase</label><input type="email" id="input-email-docente" autocomplete="username" placeholder="docente@institucion.edu" class="w-full p-3 bg-slate-50 border rounded-xl mb-3"><label for="input-clave-docente" class="block text-xs font-semibold text-slate-600 mb-1">Contraseña del sistema</label><div class="relative mb-3"><input type="password" id="input-clave-docente" autocomplete="current-password" placeholder="Contraseña del sistema" class="w-full p-3 pr-12 bg-slate-50 border rounded-xl"><button type="button" onclick="alternarVisibilidadClave('input-clave-docente', this)" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña" class="btn-ver-clave absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-brand-600 focus:outline-none focus:text-brand-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             <div id="docente-login-error" class="hidden bg-rose-50 text-rose-700 p-2 rounded-xl text-xs text-center mb-3">Ingresa tu cuenta de Firebase autorizada.</div>
             <div class="grid grid-cols-2 gap-3 mb-3"><button onclick="volverAlInicio()" class="bg-slate-100 py-2 rounded-xl">Cancelar</button><button onclick="validarAccesoDocente()" class="bg-brand-600 text-white py-2 rounded-xl">Iniciar sesión</button></div>
             <div class="text-center text-xs text-slate-400 border-t pt-3">
@@ -2768,9 +2780,9 @@ video {
                         <p class="text-[11px] text-slate-500 mb-3">Exporta los PDFs de un trimestre cerrado a un archivo JSON descargable (respaldo aparte) y luego los elimina de la base activa para liberar espacio. <strong>No es automático:</strong> tú decides cuándo hacerlo, y siempre puedes ver primero qué se archivaría antes de confirmar.</p>
                         <div class="flex flex-wrap items-center gap-2 mb-1">
                             <select id="cfg-archivado-trimestre" class="border border-slate-300 rounded-lg px-2 py-2 text-xs">
-                                <option value="1">1er Trimestre (Septiembre – Diciembre)</option>
-                                <option value="2">2do Trimestre (Enero – Marzo)</option>
-                                <option value="3">3er Trimestre (Abril – Junio)</option>
+                                <option value="1">1er Trimestre</option>
+                                <option value="2">2do Trimestre</option>
+                                <option value="3">3er Trimestre</option>
                             </select>
                             <button onclick="analizarArchivadoTrimestre()" class="bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-brand-700">🔍 Analizar trimestre (sin descargar PDFs)</button>
                         </div>
@@ -3434,6 +3446,13 @@ video {
             return trimestresEfectivos()[0]?.num || 1;
         }
 
+        // Seguridad: tipos MIME que pueden abrirse en una pestaña del propio origen sin ejecutar scripts.
+        // Un archivo subido por un estudiante con otro tipo (text/html, image/svg+xml, etc.) se descarga,
+        // nunca se abre: un blob: hereda el origen de la aplicación.
+        function nptMimeVisualizable(mime) {
+            const tipo = String(mime || 'application/pdf').split(';')[0].trim().toLowerCase();
+            return ['application/pdf','image/png','image/jpeg','image/webp','image/gif'].includes(tipo) ? tipo : null;
+        }
         function escapeHtml(valor) {
             return texto(valor).replace(/[&<>"']/g, ch => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -3706,6 +3725,23 @@ video {
             if(other){other.classList.add('hidden');other.style.display='none';}
             if(box){if(esError){document.getElementById('login-error-text').innerText=mensaje;}else{box.textContent=mensaje;}box.classList.remove('hidden');box.style.display=esError?'flex':'block';}
         }
+        // Muestra u oculta el texto de un campo de contraseña (login de estudiante y de docente)
+        function alternarVisibilidadClave(idInput, boton) {
+            const input = document.getElementById(idInput);
+            if (!input) return;
+            const mostrar = input.type === 'password';
+            input.type = mostrar ? 'text' : 'password';
+            if (boton) {
+                const etiqueta = mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña';
+                boton.setAttribute('aria-label', etiqueta);
+                boton.setAttribute('title', etiqueta);
+                boton.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+                boton.innerHTML = mostrar
+                    ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>'
+                    : '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+            }
+            input.focus();
+        }
         function ocultarAvisosLoginEstudiante() {
             ['login-error','login-status'].forEach(id=>{
                 const box=document.getElementById(id);
@@ -3713,6 +3749,7 @@ video {
             });
         }
         async function registrarCuentaEstudiante() {
+            if (!await asegurarPerfilParaEstudiante()) return;
             const email=correoEstudianteIngresado(),password=document.getElementById('input-clave-estudiante')?.value||'';
             if(!email) return mostrarEstadoCuentaEstudiante('Escribe primero tu correo institucional.',true);
             if(!esCorreoInstitucionalValido(email)) return mostrarEstadoCuentaEstudiante('Usa tu correo institucional completo.',true);
@@ -3762,6 +3799,7 @@ video {
             } catch (_) {}
             _authToken=null;_authRefreshToken=null;_authTokenExpiresAt=0;_authIdentity=null;
             try { sessionStorage.removeItem('sgcFirebaseRefreshToken'); } catch(_) {}
+            try { limpiarRespaldosLocales(); } catch (_) {}
         }
         async function obtenerAuthToken(forzarRenovacion = false) {
             const ahora=Date.now();
@@ -3859,18 +3897,6 @@ video {
             }
         }
 
-        async function verificarConexionFirebase() {
-            let ultimoError = null;
-            for (const ruta of RTDB_PROBE_PATHS) {
-                try {
-                    await fetchFirebase(rtdbRestUrl(ruta));
-                    return true;
-                } catch (e) {
-                    ultimoError = e;
-                }
-            }
-            throw ultimoError || new Error('No se pudo verificar Firebase');
-        }
 
         /** Lee un nodo RTDB. Prioriza SDK (tiempo real), cae a REST. */
         async function leerValorRutaFirebase(ruta) {
@@ -4187,15 +4213,6 @@ video {
             nptListenersTiempoReal.push(cancelar);
         }
 
-        function activarListenersFirebase() {
-            cancelarListenersFirebase();
-            escucharRutaFirebase(rutaEstudiantes, 'estudiantes', valor => {
-                estudiantes = normalizarListaEstudiantes(valor);
-            });
-            escucharRutaFirebase(rutaCalificaciones, 'calificaciones', valor => {
-                calificaciones = normalizarListaCalificaciones(valor);
-            });
-        }
 
         async function esperarDatosIniciales() {
             if (datosInicialesCargados) return true;
@@ -4231,26 +4248,23 @@ video {
             actualizarEstadoConexion('🟡 REST preparado; espera el inicio de sesión');
         }
 
-        function mostrarErrorConexion() {
-            document.getElementById('loading-data')?.classList.add('hidden');
-            actualizarEstadoConexion('🔴 Sin conexión a Firebase - Modo local');
-            try {
-                const backupEstudiantes = localStorage.getItem('estudiantes_backup');
-                const backupCalificaciones = localStorage.getItem('calificaciones_backup');
-                estudiantes = backupEstudiantes ? normalizarListaEstudiantes(JSON.parse(backupEstudiantes)) : estudiantes;
-                calificaciones = backupCalificaciones ? normalizarListaCalificaciones(JSON.parse(backupCalificaciones)) : calificaciones;
-            } catch (e) {
-                console.warn('No se pudo restaurar el respaldo local:', e);
-            }
-            datosInicialesCargados = true;
-            actualizarSelectores();
-            actualizarPaneles();
-        }
 
-        function guardarBackup() {
-            localStorage.setItem('estudiantes_backup', JSON.stringify(estudiantes));
-            localStorage.setItem('calificaciones_backup', JSON.stringify(calificaciones));
+        // Privacidad: el respaldo contiene datos personales de menores (cédulas, correos, notas). Se guarda
+        // solo en sessionStorage (se borra al cerrar la pestaña) y se elimina al cerrar sesión; antes
+        // quedaba indefinidamente en localStorage, visible para el siguiente usuario de un equipo compartido.
+        const SGC_CLAVES_RESPALDO_LOCAL = ['estudiantes_backup', 'calificaciones_backup'];
+        function limpiarRespaldosLocales() {
+            SGC_CLAVES_RESPALDO_LOCAL.forEach(clave => {
+                try { localStorage.removeItem(clave); } catch (_) {}
+                try { sessionStorage.removeItem(clave); } catch (_) {}
+            });
         }
+        try { SGC_CLAVES_RESPALDO_LOCAL.forEach(clave => localStorage.removeItem(clave)); } catch (_) {} // respaldos heredados
+        // Rendimiento y privacidad: el respaldo local ya no se escribe. La única función que lo leía
+        // (mostrarErrorConexion) no se invocaba en ningún punto, de modo que cada guardado serializaba
+        // todos los estudiantes y calificaciones sin que nadie usara esa copia. Se conserva la firma para
+        // no tocar a sus llamadores; limpiarRespaldosLocales() sigue eliminando copias de versiones anteriores.
+        function guardarBackup() {}
 
         // ==================== FUNCIONES DE ESCRITURA MEJORADAS ====================
         /**
@@ -4500,19 +4514,6 @@ video {
                 const tieneNotas = nptNotas[e.cedula] && Object.keys(nptNotas[e.cedula]).some(t => Object.keys(nptNotas[e.cedula][t] || {}).length > 0);
                 let badge = tieneNotas ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px]">✅ Con notas</span>' : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px]">⏳ Sin notas</span>';
                 let row = `<tr class="border-b"><td class="p-2">${i+1}</td><td class="p-2 font-semibold">${escapeHtml(e.nombre)||'-'}</td><td class="p-2">${escapeHtml(e.curso)||'-'}</td><td class="p-2">${escapeHtml(e.paralelo)||'-'}</td><td class="p-2 font-mono">${escapeHtml(e.cedula)||'-'}</td><td class="p-2 text-center">${badge}</td><td class="p-2 text-center"><button onclick="verDetalle('${e.cedula}')" class="text-brand-600 text-[10px] bg-brand-50 px-2 py-1 rounded">👤 Ficha</button> <button onclick="eliminarEstudiante('${e.cedula}')" class="text-rose-600 text-[10px] bg-rose-50 px-2 py-1 rounded">🗑️</button></td></tr>`;
-                tbody.insertRow().innerHTML = row;
-            });
-        }
-        function mostrarTablaCalificaciones() {
-            let tbody = document.getElementById('tabla-calificaciones-body'), noAlert = document.getElementById('no-calif-alert');
-            if(!tbody) return;
-            let califs = calificacionesFiltradas();
-            tbody.innerHTML = '';
-            if(califs.length === 0) { noAlert?.classList.remove('hidden'); return; }
-            noAlert?.classList.add('hidden');
-            califs.forEach((c,i) => {
-                const nota = numero(c.nota);
-                let row = `<tr class="border-b hover:bg-slate-50"><td class="p-3">${i+1}</td><td class="p-3 font-medium">${escapeHtml(c.nombre)}</td><td class="p-3 font-mono">${escapeHtml(c.cedula)}</td><td class="p-3">${escapeHtml(c.curso || cursoActual || '-')} "${escapeHtml(c.paralelo || paraleloActual || '-')}"</td><td class="p-3 text-slate-500">${escapeHtml(nptFormatoFecha(c.fecha))}</td><td class="p-3 text-center">${numero(c.correctas)}/10</td><td class="p-3 text-right font-bold ${nota>=7?'text-emerald-600':'text-rose-500'}">${formatearNota(nota)}</td></tr>`;
                 tbody.insertRow().innerHTML = row;
             });
         }
@@ -4833,6 +4834,7 @@ video {
         }
         async function verificarEstudiante() {
             ocultarAvisosLoginEstudiante();
+            if (!await asegurarPerfilParaEstudiante()) return;
             const local=normalizarUsuarioCorreoInstitucional(document.getElementById('input-email-local')?.value);
             const ced=normalizarCedula(document.getElementById('input-cedula')?.value);
             const password=document.getElementById('input-clave-estudiante')?.value||'';
@@ -6072,9 +6074,11 @@ video {
         //   nptNotas/{cedula}/trimestre{n}/{tipo}                           → { nota, observacion, fechaNota, docente, verificado, fechaVerificacion }
 
         const NPT_TRIMESTRES = [
-            { num: 1, label: '1er Trimestre', meses: 'Septiembre – Diciembre' },
-            { num: 2, label: '2do Trimestre', meses: 'Enero – Marzo' },
-            { num: 3, label: '3er Trimestre', meses: 'Abril – Junio' }
+            // Solo etiquetas genéricas: los meses y las fechas de cada trimestre se leen de
+            // Firebase (configuracion/trimestres) y no se fijan en el código.
+            { num: 1, label: '1er Trimestre', meses: '' },
+            { num: 2, label: '2do Trimestre', meses: '' },
+            { num: 3, label: '3er Trimestre', meses: '' }
         ];
         const NPT_TIPOS = [
             { id: 'cuaderno', label: '📓 Cuaderno',  icono: '📓' },
@@ -6150,7 +6154,6 @@ video {
         // dependen del insumo concreto en ese curso/paralelo/trimestre — todo insumo 'texto' se
         // entrega por URL y se evalúa con rúbrica+IA; todo insumo 'test' NO (se autocalifica).
         function esInsumoURL(curso, paralelo, n, slotId) { return !nptInsumoEsTest(curso, paralelo, n, slotId); }
-        function esInsumoConRubrica(curso, paralelo, n, slotId) { return !nptInsumoEsTest(curso, paralelo, n, slotId); }
         // Decisión de diseño confirmada: en el esquema de 8 espacios NINGÚN insumo bloquea el envío
         // por falta de rúbrica publicada (se unifica al comportamiento permisivo que ya regía para
         // Tarea/Talleres) — la evaluación por IA simplemente queda pendiente hasta que exista rúbrica.
@@ -6190,9 +6193,16 @@ video {
         const NPT_EVAL_API_ENDPOINT = "https://npt-eval-proxy.cesargodoyia25.workers.dev";
         // Endpoint liviano de validación al momento del envío (no gasta cuota de Gemini).
         const NPT_VALIDAR_ENVIO_ENDPOINT = NPT_EVAL_API_ENDPOINT + "/validar-envio";
-        // Secreto compartido con el Worker (mismo valor configurado allí como NPT_SHARED_SECRET).
-        // Se reutiliza en toda llamada al Worker (evaluación e validación) para no duplicarlo.
-        const NPT_AUTH_HEADER = '3f79bbd513edaf0d68bf046dd951929ae3f2a86e3aaaf05f';
+        // Autenticación con el Worker (npt-eval-proxy): ID token de Firebase del usuario en "Authorization: Bearer".
+        // Ya NO hay ningún secreto compartido en este HTML público. El Worker verifica la firma del token
+        // y autoriza por rol: la evaluación con Gemini es EXCLUSIVA del docente; /validar-envio admite
+        // al docente y a estudiantes registrados.
+        // (Autor del sistema: Mgt. César Godoy R.)
+        async function nptEncabezadosWorker() {
+            const token = await obtenerAuthToken();
+            if (!token) throw new Error('Tu sesión no es válida o expiró. Cierra sesión e inicia sesión de nuevo.');
+            return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        }
 
         let nptConfig = {};                 // { [curso]: { [paralelo]: { [n]: {habilitado, examenHabilitado} } } }
         let nptHabilitacionEstudiantes = {}; // LEGACY/general: { [curso]: { [paralelo]: { [n]: { [cedula]: bool } } } }
@@ -6242,7 +6252,8 @@ video {
         // Período académico activo + trimestres configurables + fórmula de promedio
         // Nodos RTDB:
         //   configuracion/periodoActivo                  → { nombre, activadoEn }
-        //   configuracion/trimestres                     → { 1: {label, meses, desde, hasta}, 2: {...}, 3: {...} }
+        //   configuracion/trimestresPorPeriodo/{PERIODO} → { 1: {label, meses, desde, hasta}, 2: {...}, 3: {...} }  (fuente principal)
+        //   configuracion/trimestres                     → espejo del período activo (compatibilidad con versiones anteriores)
         //   configuracion/formulaPromedio                → { cuaderno: 25, libro: 25, tarea: 20, talleres: 30 }  (porcentajes)
         let cfgPeriodoActivo = null;
         let cfgMaxSolicitudesRecuperacion = null;
@@ -6255,7 +6266,10 @@ video {
         let planificacionesCurriculares = {};
         let asistenciaMesVisible = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         let asistenciaFechaActiva = '';
-        let cfgTrimestres = null;       // null = usar NPT_TRIMESTRES por defecto
+        let cfgTrimestres = null;       // trimestres EFECTIVOS del período activo; null = sin fechas configuradas
+        let cfgTrimestresPorPeriodo = {}; // { CLAVE_PERIODO: {1,2,3} } leído de configuracion/trimestresPorPeriodo
+        let cfgTrimestresLegacy = null;   // configuracion/trimestres (estructura anterior, sin período)
+        let cfgTrimestresHeredados = false; // true si cfgTrimestres proviene de la estructura anterior
         let cfgFormulaPromedio = null;  // null = promedio simple
         let cfgFirmaDocente = null;     // null = sin firma registrada. Si existe: { base64, mime, fecha }
         let cfgPerfilDocente = { nombre: '' };
@@ -6289,6 +6303,79 @@ video {
         function actualizarNombreDocenteVisible() {
             const nombre = document.getElementById('nombre-docente-inicial');
             if (nombre) nombre.textContent = nombreDocenteConfigurado();
+            actualizarEstadoAccesoEstudiante();
+        }
+        // ---- Siglas de la institución (iniciales de las palabras significativas del nombre) ----
+        // Ej.: "Unidad Educativa Fiscomisional Sagrado Corazón" → "UEFSC"
+        function siglasInstitucion(nombreInstitucion) {
+            const omitir = new Set(['de','del','la','las','el','los','y','e','en','al','a']);
+            return texto(nombreInstitucion).trim().split(/\s+/)
+                .filter(p => p && !omitir.has(p.toLowerCase()))
+                .map(p => { const m = p.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/); return m ? m[0].toUpperCase() : ''; })
+                .join('');
+        }
+        // ---- Requisitos para habilitar el módulo de estudiante ----
+        // Sin nombre de institución y nombre de docente registrados, el estudiante no puede ingresar.
+        let perfilAccesoEstudianteResuelto = false; // true cuando ya se intentó leer el perfil desde Firebase
+        function faltantesPerfilEstudiante() {
+            const faltan = [];
+            if (!texto(cfgPerfilInstitucional?.nombre).trim()) faltan.push('el nombre de la institución');
+            if (!texto(cfgPerfilDocente?.nombre).trim()) faltan.push('el nombre del docente');
+            return faltan;
+        }
+        function mensajeAccesoEstudianteBloqueado() {
+            return `Acceso de estudiantes no disponible: falta configurar ${faltantesPerfilEstudiante().join(' y ')}. Solicita al docente que lo registre en Configuración.`;
+        }
+        function actualizarEstadoAccesoEstudiante() {
+            const aviso = document.getElementById('aviso-perfil-no-configurado');
+            if (!aviso) return;
+            const bloquear = perfilAccesoEstudianteResuelto && faltantesPerfilEstudiante().length > 0;
+            aviso.classList.toggle('hidden', !bloquear);
+            aviso.textContent = bloquear ? mensajeAccesoEstudianteBloqueado() : '';
+        }
+        async function asegurarPerfilParaEstudiante() {
+            if (faltantesPerfilEstudiante().length) {
+                // Reintenta la lectura por si la carga inicial aún no terminó o falló de forma transitoria.
+                await Promise.allSettled([cargarPerfilInstitucionalDesdeFirebase(), cargarPerfilDocenteDesdeFirebase()]);
+                perfilAccesoEstudianteResuelto = true;
+            }
+            actualizarEstadoAccesoEstudiante();
+            if (!faltantesPerfilEstudiante().length) return true;
+            mostrarEstadoCuentaEstudiante(mensajeAccesoEstudianteBloqueado(), true);
+            return false;
+        }
+        async function cargarPerfilDocenteDesdeFirebase() {
+            try {
+                const perfil = await leerValorRutaFirebase('configuracion/perfilDocente');
+                if (!perfil || typeof perfil !== 'object') return false;
+                cfgPerfilDocente = perfil;
+                actualizarNombreDocenteVisible();
+                return true;
+            } catch (error) {
+                console.warn('[PERFIL] No se pudo cargar el perfil del docente:', error?.message || error);
+                return false;
+            }
+        }
+        // ---- Provincia y país (geolocalización aproximada por IP, sin solicitar permisos al usuario) ----
+        async function cargarUbicacionGeografica() {
+            const el = document.getElementById('ubicacion-geo');
+            if (!el) return;
+            try { const guardada = sessionStorage.getItem('sgc_ubicacion'); if (guardada) { el.textContent = guardada; return; } } catch (_) {}
+            const controlador = new AbortController();
+            const limite = setTimeout(() => controlador.abort(), 6000);
+            try {
+                const resp = await fetch('https://ipwho.is/?lang=es&fields=success,country,region', { signal: controlador.signal });
+                const datos = await resp.json();
+                if (!datos || datos.success === false || !datos.country) throw new Error('Sin datos de ubicación');
+                const ubicacion = '📍 ' + [datos.region, datos.country].filter(Boolean).join(', ');
+                el.textContent = ubicacion;
+                try { sessionStorage.setItem('sgc_ubicacion', ubicacion); } catch (_) {}
+            } catch (error) {
+                el.textContent = '📍 Ubicación no disponible';
+                console.warn('[UBICACION] No se pudo determinar provincia y país:', error?.message || error);
+            } finally {
+                clearTimeout(limite);
+            }
         }
         function nombreInstitucionConfigurado() {
             return texto(cfgPerfilInstitucional?.nombre).trim() || 'Institución no configurada';
@@ -6300,6 +6387,9 @@ video {
         function actualizarPerfilInstitucionalVisible() {
             const nombre = document.getElementById('nombre-institucion-membrete');
             if (nombre) nombre.textContent = nombreInstitucionConfigurado();
+            const siglas = document.getElementById('siglas-institucion');
+            if (siglas) siglas.textContent = siglasInstitucion(cfgPerfilInstitucional?.nombre) || '—';
+            actualizarEstadoAccesoEstudiante();
             const dominio = document.getElementById('dominio-correo-estudiante');
             if (dominio) dominio.textContent = dominioCorreoInstitucionalConfigurado() || '@dominio-no-configurado';
             actualizarVistaPreviaCorreoNPT();
@@ -9103,12 +9193,6 @@ video {
             const min = String(f.getMinutes()).padStart(2, '0');
             return `${nptFormatoFecha(f)} ${hh}:${min}`;
         }
-        function nptDiasDesde(fechaStr) {
-            if (!fechaStr) return Infinity;
-            const f = new Date(fechaStr);
-            if (isNaN(f.getTime())) return Infinity;
-            return (Date.now() - f.getTime()) / 86400000;
-        }
         function nptSolicitudRecuperacionDe(cedula, numTrimestre, clave) {
             return nptSolicitudesRecuperacion[cedula]?.[`trimestre${numTrimestre}`]?.[clave] || null;
         }
@@ -9154,12 +9238,6 @@ video {
             if (clave === 'examen') return nptFechaFinRecuperacionExamen(null, curso, paralelo, numTrimestre);
             // Para insumos, tanto la solicitud como la rendición vencen al cierre oficial del trimestre.
             return nptFechaFinTrimestre(numTrimestre);
-        }
-        function nptDiasDisponiblesSolicitud(fechaInicio, fechaFin) {
-            if (!fechaInicio || !fechaFin) return null;
-            const a = new Date(fechaInicio), b = new Date(fechaFin);
-            if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
-            return Math.max(0, (b.getTime() - a.getTime()) / 86400000);
         }
         function nptSolicitudExpiradaInfo(curso, paralelo, numTrimestre, clave) {
             const activacion = nptFechaActivacionEvaluacion(curso, paralelo, numTrimestre, clave);
@@ -9730,7 +9808,7 @@ video {
             try {
                 resp = await fetch(NPT_EVAL_API_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-NPT-Auth': NPT_AUTH_HEADER },
+                    headers: await nptEncabezadosWorker(),
                     body: JSON.stringify(payload)
                 });
             } catch (fallaRed) {
@@ -9739,7 +9817,7 @@ video {
                 try {
                     resp = await fetch(NPT_EVAL_API_ENDPOINT, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-NPT-Auth': NPT_AUTH_HEADER },
+                        headers: await nptEncabezadosWorker(),
                         body: JSON.stringify(payload)
                     });
                 } catch (reintentoRed) {
@@ -10161,9 +10239,10 @@ video {
                 const byteStr   = atob(base64);
                 const byteArr   = new Uint8Array(byteStr.length);
                 for (let i = 0; i < byteStr.length; i++) byteArr[i] = byteStr.charCodeAt(i);
-                const blob      = new Blob([byteArr], { type: arch.mime || 'application/pdf' });
+                const mimeSeguro = nptMimeVisualizable(arch.mime);
+                const blob      = new Blob([byteArr], { type: mimeSeguro || 'application/octet-stream' });
                 const url       = URL.createObjectURL(blob);
-                const ventana   = window.open(url, '_blank');
+                const ventana   = mimeSeguro ? window.open(url, '_blank') : null;
                 if (!ventana) {
                     // Si el navegador bloquea popups, descargar directamente
                     const a = document.createElement('a');
@@ -11792,7 +11871,7 @@ video {
                 try {
                     const respValidar = await fetch(NPT_VALIDAR_ENVIO_ENDPOINT, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-NPT-Auth': NPT_AUTH_HEADER },
+                        headers: await nptEncabezadosWorker(),
                         body: JSON.stringify({ url, correoEsperado: estudianteActual.correo || '' })
                     });
                     validacion = await respValidar.json().catch(() => null);
@@ -11890,7 +11969,7 @@ video {
                 try {
                     const respValidar = await fetch(NPT_VALIDAR_ENVIO_ENDPOINT, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-NPT-Auth': NPT_AUTH_HEADER },
+                        headers: await nptEncabezadosWorker(),
                         body: JSON.stringify({ url, correoEsperado: estudianteActual.correo || '' })
                     });
                     validacion = await respValidar.json().catch(() => null);
@@ -12041,18 +12120,6 @@ video {
                 progressDiv?.classList.add('hidden');
                 alert(`Error al guardar el archivo: ${e.message}\n\nVerifica tu conexión e inténtalo de nuevo.`);
             }
-        }
-        function filtrarCalificaciones() {
-            let term = document.getElementById('buscar-calificacion').value.toLowerCase();
-            let filtradas = calificacionesFiltradas().filter(c => texto(c.nombre).toLowerCase().includes(term) || texto(c.cedula).includes(term));
-            let tbody = document.getElementById('tabla-calificaciones-body');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            if(filtradas.length === 0) { document.getElementById('no-calif-alert')?.classList.remove('hidden'); return; }
-            document.getElementById('no-calif-alert')?.classList.add('hidden');
-            filtradas.forEach((c,i) => {
-                tbody.insertRow().innerHTML = `<tr><td class="p-3">${i+1}</td><td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(c.cedula)}</td><td>${escapeHtml(c.curso || cursoActual || '-')}</td><td>${escapeHtml(nptFormatoFecha(c.fecha))}</td><td class="text-center">${numero(c.correctas)}/10</td><td class="text-right font-bold">${formatearNota(c.nota)}</td></tr>`;
-            });
         }
         function fechaArchivo() {
             const f = new Date();
@@ -12301,15 +12368,34 @@ video {
         <div class="meta">Generado: ${escapeHtml(nptFormatoFechaHora(new Date()))}</div>
     </header>
     <div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
-    ${contenido}
+    ${sgcQuitarContenidoActivo(contenido)}
 
 </body>
 </html>`;
         }
 
-        function sgcSanearReporteHtml(titulo, contenido) {
-            if (/reporte\s+de\s+estudiantes/i.test(String(titulo || ''))) return contenido;
+        // Seguridad: los reportes se escriben con document.write en una ventana del MISMO origen que la
+        // aplicación. Cualquier script o manejador de eventos incrustado (por ejemplo, en un nombre o una
+        // respuesta guardada por un estudiante) se ejecutaría con los privilegios del docente. Esta
+        // función elimina contenido activo y conserva tablas, estilos y formato.
+        function sgcQuitarContenidoActivo(contenido) {
             const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + String(contenido || '') + '</body></html>', 'text/html');
+            doc.body.querySelectorAll('script,iframe,frame,frameset,object,embed,applet,link,meta,base,noscript').forEach(el => el.remove());
+            doc.body.querySelectorAll('style').forEach(el => { el.textContent = (el.textContent || '').replace(/@import[^;]*;?/gi, ''); });
+            const atributosUrl = new Set(['href','src','xlink:href','action','formaction','srcdoc','data','poster','background']);
+            doc.body.querySelectorAll('*').forEach(el => {
+                [...el.attributes].forEach(attr => {
+                    const nombre = attr.name.toLowerCase();
+                    if (nombre.startsWith('on') || nombre === 'srcdoc') { el.removeAttribute(attr.name); return; }
+                    if (atributosUrl.has(nombre) && /^(javascript|vbscript|data:text\/html)/i.test(String(attr.value).replace(/[\u0000- ]/g, ''))) el.removeAttribute(attr.name);
+                });
+            });
+            return doc.body.innerHTML;
+        }
+        function sgcSanearReporteHtml(titulo, contenido) {
+            // El reporte de estudiantes conserva las cédulas, pero igualmente se retira el contenido activo.
+            if (/reporte\s+de\s+estudiantes/i.test(String(titulo || ''))) return sgcQuitarContenidoActivo(contenido);
+            const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + sgcQuitarContenidoActivo(contenido) + '</body></html>', 'text/html');
             doc.querySelectorAll('table').forEach(tabla => {
                 const filas = [...tabla.rows];
                 if (!filas.length) return;
@@ -12381,48 +12467,7 @@ video {
             abrirODescargarReporte("Reporte de Estudiantes", html, `reporte_estudiantes_${fechaArchivo()}.html`);
         }
 
-        function generarReporteEvaluaciones() {
-            if (!validarFiltroReporte()) return;
-            const listaEvaluaciones = calificacionesFiltradas();
-            if(!listaEvaluaciones.length) { alert("No hay evaluaciones para el curso/paralelo seleccionado."); return; }
-            let suma = 0, aprobados = 0;
-            listaEvaluaciones.forEach(c => { const nota = numero(c.nota); suma += nota; if(nota >= 7) aprobados++; });
-            let html = `<div class="filtro"><strong>Filtro aplicado:</strong> ${escapeHtml(etiquetaFiltroReporte())}</div><p><strong>Total de evaluaciones:</strong> ${listaEvaluaciones.length} &nbsp; <strong>Promedio:</strong> ${(suma/listaEvaluaciones.length).toFixed(2)} &nbsp; <strong>Aprobados:</strong> ${aprobados}</p>`;
-            let grupos = {};
-            listaEvaluaciones.forEach(c => {
-                let est = estudiantes.find(e => e.cedula === c.cedula);
-                let key = est ? `${est.curso||'Sin curso'} - ${est.paralelo||'Sin paralelo'}` : `${c.curso||'Desconocido'} - ${c.paralelo||'?'}`;
-                if(!grupos[key]) grupos[key] = [];
-                grupos[key].push(c);
-            });
-            for(let [g, lista] of Object.entries(grupos)) {
-                html += `<h2>${escapeHtml(g)} (${lista.length})</h2><table><tr><th class="col-num">#</th><th class="col-nombre">Estudiante</th><th class="col-fecha">Fecha</th><th class="col-nota right">Nota</th></tr>`;
-                lista.forEach((c,i) => {
-                    html += `<tr><td class="center">${i+1}</td><td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(nptFormatoFecha(c.fecha))}</td><td class="right"><strong>${formatearNota(c.nota)}</strong></td></tr>`;
-                });
-                html += `</table>`;
-            }
-            html += tablaResultadosEvaluacion(listaEvaluaciones);
-            abrirODescargarReporte("Reporte de Evaluaciones", html, `reporte_evaluaciones_${fechaArchivo()}.html`);
-        }
 
-        function exportarResultadosCSV() {
-            if (!validarFiltroReporte()) return;
-            const listaEvaluaciones = calificacionesFiltradas();
-            if(!listaEvaluaciones.length) { alert("No hay evaluaciones para exportar en el filtro seleccionado."); return; }
-            let csv = 'Docente,' + csvCampo(nombreDocenteConfigurado()) + "\n\nEstudiante,Curso,Paralelo,Nota,Fecha\n";
-            listaEvaluaciones.forEach(c => {
-                let est = estudiantes.find(e => e.cedula === c.cedula);
-                csv += [
-                    csvCampo(c.nombre || est?.nombre),
-                    csvCampo(c.curso || est?.curso),
-                    csvCampo(c.paralelo || est?.paralelo),
-                    csvCampo(formatearNota(c.nota)),
-                    csvCampo(c.fecha)
-                ].join(',') + "\n";
-            });
-            descargarArchivo(`calificaciones_${fechaArchivo()}.csv`, csv, 'text/csv;charset=utf-8');
-        }
 
         // ==================== REPORTES NPT (por trimestre / individual) ====================
         // Requisito #13: reportes de evaluados por trimestre de cada curso y paralelo (con notas de insumos), e individual por estudiante.
@@ -12712,9 +12757,7 @@ video {
             abrirODescargarReporte(`Reporte de notas individual — ${t.label}`, html, `reporte_notas_individual_t${t.num}_${fechaArchivo()}.html`, 'landscape');
             return true;
         }
-        async function limpiarRegistros() { if(confirm("¿Borrar todas las calificaciones?")) await limpiarCalificaciones(); }
         async function limpiarNominaCompleta() { if(confirm("⚠️ ¿Vaciar toda la nómina? Esta acción es irreversible.")) await limpiarEstudiantes(); }
-        async function generarDataSimulada() { if(confirm("Generar calificaciones aleatorias?")) { for(let e of estudiantesFiltrados()) { let correctas = Math.floor(Math.random()*11); await guardarCalificacion({ cedula:e.cedula, nombre:e.nombre, fecha: new Date().toISOString(), correctas, nota: correctas, curso:e.curso, paralelo:e.paralelo }); } alert("Calificaciones simuladas guardadas"); } }
 
         // ==================== SECCIÓN DE CONFIGURACIÓN ====================
         // ---- Auditoría de cambios críticos (trazabilidad) ----
@@ -12825,15 +12868,17 @@ video {
                 // Leer solo las ramas que usa esta función y en paralelo evita descargar
                 // de una sola vez configuración extensa (por ejemplo, el historial curricular).
                 const campos = opciones.soloEsencialEstudiante && !esSesionDocenteFirebase()
-                    ? ['periodoActivo','trimestres','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','horarioDocente']
-                    : ['periodoActivo','trimestres','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','planificacionesCurriculares','calendarioAcademico','horarioDocente','contadores'];
+                    ? ['periodoActivo','trimestres','trimestresPorPeriodo','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','horarioDocente']
+                    : ['periodoActivo','trimestres','trimestresPorPeriodo','formulaPromedio','perfilInstitucional','perfilDocente','firmaDocente','planificacionesCurriculares','calendarioAcademico','horarioDocente','contadores'];
                 const cfg = await leerCamposConfiguracionFirebase(campos, campo =>
                     leerValorRutaFirebase(`configuracion/${campo}`)
                 );
                 cfgPeriodoActivo = (cfg && cfg.periodoActivo) || null;
                 await cargarMaxSolicitudesRecuperacionPeriodoActivo();
                 await sincronizarMaximoPeriodoActivoParaLecturaEstudiante();
-                cfgTrimestres = (cfg && cfg.trimestres) || null;
+                cfgTrimestresLegacy = (cfg && cfg.trimestres) || null;
+                cfgTrimestresPorPeriodo = (cfg && cfg.trimestresPorPeriodo && typeof cfg.trimestresPorPeriodo === 'object') ? cfg.trimestresPorPeriodo : {};
+                resolverTrimestresDelPeriodo();
                 cfgFormulaPromedio = (cfg && cfg.formulaPromedio) || null;
                 const perfilInstitucional = normalizarPerfilInstitucional(cfg?.perfilInstitucional);
                 if (perfilInstitucional) {
@@ -13099,11 +13144,55 @@ video {
                 // conservar selección si sigue existiendo
                 if ([...sel.options].some(o => o.value === val)) sel.value = val;
             });
+            // Selector de archivado (Configuración): etiquetas y meses tomados de la configuración guardada
+            const selArchivado = document.getElementById('cfg-archivado-trimestre');
+            if (selArchivado) {
+                const valArchivado = selArchivado.value;
+                selArchivado.innerHTML = trim.map(t => `<option value="${t.num}">${escapeHtml(t.label)}${t.meses ? ` (${escapeHtml(t.meses)})` : ''}</option>`).join('');
+                if ([...selArchivado.options].some(o => o.value === valArchivado)) selArchivado.value = valArchivado;
+            }
         }
-        // Actualiza el badge de período activo en el header del panel
+        // Actualiza los badges de período activo: encabezado público y header del panel docente
         function actualizarBadgePeriodo() {
+            const nombre = texto(cfgPeriodoActivo?.nombre).trim();
             const badge = document.getElementById('badge-periodo-activo');
-            if (badge) badge.textContent = cfgPeriodoActivo?.nombre ? `🗓️ Período: ${cfgPeriodoActivo.nombre}` : '🗓️ Sin período activo';
+            if (badge) badge.textContent = nombre ? `🗓️ Período: ${nombre}` : '🗓️ Sin período activo';
+            const cabecera = document.getElementById('badge-periodo-cabecera');
+            if (cabecera) cabecera.textContent = nombre ? `Período ${nombre}` : 'Período no configurado';
+        }
+        // Lectura previa al inicio de sesión (requiere regla pública de lectura en configuracion/periodoActivo)
+        async function cargarPeriodoActivoPublico() {
+            try {
+                const periodo = await leerValorRutaFirebase('configuracion/periodoActivo');
+                if (periodo && typeof periodo === 'object' && !cfgPeriodoActivo) cfgPeriodoActivo = periodo;
+            } catch (error) {
+                console.warn('[PERIODO] No se pudo cargar el período activo:', error?.message || error);
+            } finally {
+                actualizarBadgePeriodo();
+            }
+        }
+        // ---- Trimestres por período académico ----
+        function claveTrimestresPeriodo(nombre = cfgPeriodoActivo?.nombre) {
+            const n = texto(nombre).trim();
+            return n ? sanitizarClave(n) : '';
+        }
+        // Determina cfgTrimestres para el período activo:
+        //  1) registro propio del período; 2) si aún no existe ningún registro por período, se usan
+        //  las fechas de la estructura anterior (migración); 3) en otro caso, sin fechas (no se
+        //  arrastran las de otro año).
+        function resolverTrimestresDelPeriodo() {
+            const clave = claveTrimestresPeriodo();
+            const propios = clave ? cfgTrimestresPorPeriodo?.[clave] : null;
+            const hayRegistros = !!cfgTrimestresPorPeriodo && Object.keys(cfgTrimestresPorPeriodo).length > 0;
+            cfgTrimestresHeredados = false;
+            if (propios && typeof propios === 'object') {
+                cfgTrimestres = propios;
+            } else if (!hayRegistros && cfgTrimestresLegacy && typeof cfgTrimestresLegacy === 'object') {
+                cfgTrimestres = cfgTrimestresLegacy;
+                cfgTrimestresHeredados = true;
+            } else {
+                cfgTrimestres = null;
+            }
         }
         // Devuelve la lista de trimestres efectiva (configurada o por defecto)
         function trimestresEfectivos() {
@@ -13493,15 +13582,25 @@ video {
             if (estadoP) estadoP.innerHTML = cfgPeriodoActivo?.nombre
                 ? `<span class="text-emerald-600 font-bold">🟢 ${escapeHtml(cfgPeriodoActivo.nombre)}</span><br><span class="text-[11px] text-slate-400">Activado: ${escapeHtml(nptFormatoFechaHora(cfgPeriodoActivo.activadoEn))}</span>`
                 : '<span class="text-slate-400">No hay período activo configurado</span>';
-            // Badge de período en el header del panel
-            const badge = document.getElementById('badge-periodo-activo');
-            if (badge) badge.textContent = cfgPeriodoActivo?.nombre ? `🗓️ Período: ${cfgPeriodoActivo.nombre}` : '🗓️ Sin período activo';
+            // Badges de período (encabezado público y header del panel)
+            actualizarBadgePeriodo();
 
             // Trimestres
             const listaT = document.getElementById('cfg-trimestres-lista');
             if (listaT) {
                 const trim = trimestresEfectivos();
-                listaT.innerHTML = trim.map(t => {
+                const trimSinFechas = trim.filter(t => !(cfgTrimestres?.[t.num]?.desde && cfgTrimestres?.[t.num]?.hasta)).map(t => t.label);
+                const avisosTrim = [];
+                if (!cfgPeriodoActivo?.nombre) avisosTrim.push('No hay un período académico activo configurado.');
+                else if (cfgTrimestresHeredados) avisosTrim.push(`Se muestran fechas guardadas antes de separar los trimestres por período. Revísalas y pulsa "Guardar trimestres" para asociarlas al período ${escapeHtml(cfgPeriodoActivo.nombre)}.`);
+                if (trimSinFechas.length) avisosTrim.push(`Sin fechas "Desde/Hasta": ${trimSinFechas.map(escapeHtml).join(', ')}. Mientras falte la fecha final, la recuperación de insumos de ese trimestre se considera vencida.`);
+                const avisoHtml = avisosTrim.length
+                    ? `<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-2 text-[11px]" role="alert">⚠️ ${avisosTrim.join('<br>⚠️ ')}</div>`
+                    : '';
+                const infoPeriodoHtml = cfgPeriodoActivo?.nombre
+                    ? `<p class="text-[11px] text-slate-600">Fechas del período académico: <strong>${escapeHtml(cfgPeriodoActivo.nombre)}</strong></p>`
+                    : '';
+                listaT.innerHTML = infoPeriodoHtml + avisoHtml + trim.map(t => {
                     const cfg = cfgTrimestres?.[t.num] || {};
                     return `<div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center bg-white border rounded-lg p-2">
                         <div>
@@ -13576,7 +13675,6 @@ video {
         function normalizarDiaHorario(dia) { return String(dia || '').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
         function asistenciaEsFinDeSemana(fecha) { const d = new Date(`${fecha}T12:00:00`).getDay(); return d === 0 || d === 6; }
         function fechaEsLaborable(fecha) { return !!fecha && !asistenciaEsFinDeSemana(fecha) && calendarioAcademico?.[fecha]?.tipo !== 'no-laborable'; }
-        function escaparCSV(valor) { return `"${String(valor ?? '').replace(/"/g, '""')}"`; }
 
         function actualizarCampoMotivoCalendario() {}
         function renderCalendarioConfiguracion() {
@@ -13994,6 +14092,7 @@ video {
                 ...(maximoDelMismoPeriodo !== null ? { maxSolicitudesRecuperacionAnuales: maximoDelMismoPeriodo } : {})
             };
             cfgPeriodoActivo = registro;
+            resolverTrimestresDelPeriodo(); // los trimestres dependen del período: se recalculan al cambiarlo
             const authOk = await ensureAuth();
             if (authOk) {
                 try { await guardarValorFirebase('configuracion/periodoActivo', registro); await registrarAuditoria('periodo_activo', `Período activo: ${nombre}`); }
@@ -14001,6 +14100,9 @@ video {
             }
             await cargarMaxSolicitudesRecuperacionPeriodoActivo();
             if (authOk) await sincronizarMaximoPeriodoActivoParaLecturaEstudiante();
+            actualizarSelectoresTrimestre();
+            renderControlTrimestres();
+            renderTrimestresEstudiante();
             renderTabConfiguracion();
             alert('✅ Período académico activo guardado: ' + nombre);
         }
@@ -14040,16 +14142,57 @@ video {
                 const campo = inp.getAttribute('data-campo');
                 if (data[n]) data[n][campo] = inp.value.trim();
             });
+            // ---- Validaciones antes de guardar ----
+            const errores = [];
+            const clavePeriodo = claveTrimestresPeriodo();
+            if (!clavePeriodo) { alert('Configura y guarda primero el período académico activo: las fechas de los trimestres se guardan asociadas a ese período.'); return; }
+            [1,2,3].forEach(n => {
+                const t = data[n];
+                if (!t.label) t.label = NPT_TRIMESTRES.find(x => x.num === n)?.label || `Trimestre ${n}`;
+                const ok = c => /^\d{4}-\d{2}-\d{2}$/.test(t[c]) && !isNaN(new Date(t[c] + 'T00:00:00'));
+                if (!ok('desde') || !ok('hasta')) { errores.push(`${t.label}: indica las fechas "Desde" y "Hasta".`); return; }
+                if (t.hasta < t.desde) errores.push(`${t.label}: la fecha "Hasta" (${t.hasta}) es anterior a "Desde" (${t.desde}).`);
+            });
+            if (!errores.length) {
+                [2,3].forEach(n => {
+                    if (data[n].desde <= data[n-1].hasta) errores.push(`${data[n].label} se solapa con ${data[n-1].label}: debe iniciar después del ${data[n-1].hasta}.`);
+                });
+            }
+            if (errores.length) { alert('No se guardaron los trimestres:\n\n• ' + errores.join('\n• ')); return; }
+            // Coherencia con el período activo (advertencia, el docente decide)
+            const aniosPeriodo = (texto(cfgPeriodoActivo?.nombre).match(/\d{4}/g) || []).map(Number);
+            const advertencias = [];
+            if (!aniosPeriodo.length) {
+                advertencias.push('No hay un período activo con años (ej. 2026-2027) para comparar las fechas.');
+            } else {
+                const anioMin = Math.min(...aniosPeriodo), anioMax = Math.max(...aniosPeriodo);
+                [1,2,3].forEach(n => ['desde','hasta'].forEach(c => {
+                    const anio = Number(data[n][c].slice(0,4));
+                    if (anio < anioMin || anio > anioMax) advertencias.push(`${data[n].label}: "${c}" (${data[n][c]}) está fuera del período ${cfgPeriodoActivo.nombre}.`);
+                }));
+            }
+            if (advertencias.length && !confirm('Revisa estos puntos:\n\n• ' + advertencias.join('\n• ') + '\n\n¿Guardar de todos modos?')) return;
             cfgTrimestres = data;
+            cfgTrimestresPorPeriodo = { ...(cfgTrimestresPorPeriodo || {}), [clavePeriodo]: data };
+            cfgTrimestresLegacy = data;
+            cfgTrimestresHeredados = false;
             const authOk = await ensureAuth();
             if (authOk) {
-                try { await guardarValorFirebase('configuracion/trimestres', data); await registrarAuditoria('trimestres', `Trimestres configurados: ${JSON.stringify(data)}`); }
+                try {
+                    // Escritura atómica: registro del período + espejo legado (configuracion/trimestres) para compatibilidad.
+                    await guardarActualizacionMultipleFirebase({
+                        [`configuracion/trimestresPorPeriodo/${clavePeriodo}`]: data,
+                        'configuracion/trimestres': data
+                    });
+                    await registrarAuditoria('trimestres', `Trimestres del período ${cfgPeriodoActivo.nombre}: ${JSON.stringify(data)}`);
+                }
                 catch(e) { console.error(e); alert('Error al guardar los trimestres.'); return; }
             }
             alert('✅ Trimestres guardados. Se actualizarán en todo el sistema.');
             actualizarSelectoresTrimestre();
             renderControlTrimestres();
             renderTrimestresEstudiante();
+            renderTabConfiguracion();
         }
 
         // ---- Fórmula de promedio ----
@@ -14576,9 +14719,10 @@ video {
                 const byteStr = atob(base64);
                 const byteArr = new Uint8Array(byteStr.length);
                 for (let i = 0; i < byteStr.length; i++) byteArr[i] = byteStr.charCodeAt(i);
-                const blob = new Blob([byteArr], { type: arch.mime || 'application/pdf' });
+                const mimeSeguro = nptMimeVisualizable(arch.mime);
+                const blob = new Blob([byteArr], { type: mimeSeguro || 'application/octet-stream' });
                 const url  = URL.createObjectURL(blob);
-                const w    = window.open(url, '_blank');
+                const w    = mimeSeguro ? window.open(url, '_blank') : null;
                 if (!w) {
                     const a = document.createElement('a');
                     a.href = url; a.download = arch.nombre || `evidencia_T${numTrimestre}_${tipo}.pdf`; a.click();
@@ -14828,8 +14972,10 @@ video {
         document.addEventListener('click', event => { const button=event.target.closest?.('#npt-classroom-btn-connect, #npt-classroom-insumo-connect'); if(button){event.preventDefault();nptClassroomConectar();} });
         document.getElementById('npt-classroom-btn-pending')?.addEventListener('click', nptClassroomEnviarPendientes);        document.addEventListener('DOMContentLoaded', nptClassroomInit);
         iniciarFirebase()
-            .then(() => cargarPerfilInstitucionalDesdeFirebase())
-            .catch(error => console.warn('[PERFIL] No se pudo inicializar la carga pública del perfil institucional:', error?.message || error));
+            .then(() => Promise.allSettled([cargarPerfilInstitucionalDesdeFirebase(), cargarPerfilDocenteDesdeFirebase(), cargarPeriodoActivoPublico()]))
+            .catch(error => console.warn('[PERFIL] No se pudo inicializar la carga pública del perfil institucional:', error?.message || error))
+            .finally(() => { perfilAccesoEstudianteResuelto = true; actualizarEstadoAccesoEstudiante(); });
+        cargarUbicacionGeografica();
     </script>
 </body>
 </html>
