@@ -3641,6 +3641,7 @@ video {
             if(codigo.includes('ESTUDIANTE_CEDULA_NO_ENCONTRADA')) return 'La cédula ingresada no aparece en la nómina consultada. Verifica sus 10 dígitos; si está correcta, solicita al docente que confirme que la ficha no fue eliminada y que la cédula vigente esté registrada.';
             if(codigo.includes('ESTUDIANTE_CORREO_NO_CORRESPONDE')) return 'El correo con el que ingresaste no está asociado a esa cédula en la nómina. Verifica que uses el correo institucional registrado para ese estudiante; si no coincide, solicita al docente que revise la ficha.';
             if(codigo.includes('ESTUDIANTE_REGISTRO_INCONSISTENTE')) return 'La ficha localizada no coincide con la cédula consultada. No se abrió el acceso. Solicita al docente que revise la nómina.';
+            if(codigo.includes('ESTUDIANTE_SIN_FICHA_AUTORIZADA')) return 'La cuenta se autenticó, pero no existe una ficha en la nómina con esa cédula y ese correo. Verifica que la cédula tenga 10 dígitos y que uses exactamente el correo registrado para ese estudiante; si es correcto, solicita al docente que revise la ficha (campo de correo) en la nómina.';
             if(codigo.includes('ESTUDIANTE_NOMINA_NO_VERIFICABLE')) return 'La cuenta se autenticó, pero no se pudo consultar la nómina por un problema de conexión o permisos. Vuelve a intentarlo; si persiste, avisa al docente administrador.';
             if(['NETWORK_REQUEST_FAILED','NETWORK_ERROR','FAILED TO FETCH','TIMEOUT'].some(x=>codigo.includes(x))) return 'No se pudo conectar con Firebase. Comprueba tu conexión e inténtalo nuevamente.';
             if(codigo.includes('OPERATION_NOT_ALLOWED')) return 'El proveedor Correo/Contraseña no está habilitado en Firebase Authentication.';
@@ -4033,7 +4034,14 @@ video {
                     const registroEstudiante=registroElegido?.valor||null;
                     if(registroElegido) rutaEstudiantes=registroElegido.ruta;
                     if(!registroEstudiante) {
-                        if(lecturasNomina.some(x=>x.error)) throw new Error('ESTUDIANTE_NOMINA_NO_VERIFICABLE');
+                        // Con las reglas de RTDB, leer una ficha que NO existe, o cuyo correo no coincide con el de la
+                        // cuenta, devuelve "Permission denied" (igual que un fallo real de permisos). Si TODAS las rutas
+                        // respondieron así, lo más probable es que la cédula no esté en la nómina con este correo;
+                        // si hubo errores de red u otros, se mantiene el mensaje de conexión.
+                        const esDenegado=e=>/permission[_ ]denied|REST 40[13]\b/i.test(String(e?.code||'')+' '+String(e?.message||''));
+                        const conError=lecturasNomina.filter(x=>x.error);
+                        if(conError.length&&conError.every(x=>esDenegado(x.error))) throw new Error('ESTUDIANTE_SIN_FICHA_AUTORIZADA');
+                        if(conError.length) throw new Error('ESTUDIANTE_NOMINA_NO_VERIFICABLE');
                         throw new Error('ESTUDIANTE_CEDULA_NO_ENCONTRADA');
                     }
                     const estudiante=normalizarEstudiante({clave:ced,valor:registroEstudiante,ruta:[ced]});
@@ -4279,31 +4287,51 @@ video {
                 return !!token&&claims.firebase?.sign_in_provider==='password'&&!!claims.email;
             } catch(_) { return false; }
         }
+        // Motivo del último fallo de guardarEstudiante (para mostrarlo en pantalla y en la importación).
+        let ultimoErrorGuardadoEstudiante = '';
+        /**
+         * Guarda un estudiante en Firebase y SOLO si Firebase lo confirma (se vuelve a leer el registro)
+         * lo agrega a la lista local. Antes un error de escritura se ignoraba y se informaba "guardado"
+         * aunque no estuviera en la base de datos. Devuelve true/false; el motivo queda en
+         * ultimoErrorGuardadoEstudiante.
+         */
         async function guardarEstudiante(est) {
+            ultimoErrorGuardadoEstudiante = '';
             est = normalizarEstudiante({ clave: est.cedula, valor: est, ruta: [est.cedula] });
-            if (!est?.cedula || !est.nombre) return false;
+            if (!est?.cedula || !est.nombre) { ultimoErrorGuardadoEstudiante = 'Faltan el nombre o la cédula.'; return false; }
+            if (!/^\d{10}$/.test(est.cedula)) { ultimoErrorGuardadoEstudiante = 'La cédula debe tener 10 dígitos.'; return false; }
             if (estudiantes.some(e => e.cedula === est.cedula)) {
-                console.log(`Estudiante con cédula ${est.cedula} ya existe, omitiendo.`);
+                ultimoErrorGuardadoEstudiante = `La cédula ${est.cedula} ya existe en la nómina.`;
                 return false;
             }
+            if (!esSesionDocenteFirebase()) { ultimoErrorGuardadoEstudiante = 'Solo la sesión del docente administrador puede guardar estudiantes. Vuelve a iniciar sesión como docente.'; return false; }
+            if (!(await ensureAuth())) { ultimoErrorGuardadoEstudiante = 'Tu sesión de Firebase no es válida o expiró. Cierra sesión e inicia de nuevo.'; return false; }
 
-            const authOk = await ensureAuth();
-            if (authOk) {
-                try {
-                    await guardarValorFirebase(`${rutaEstudiantes}/${est.cedula}`, est);
-                    console.log(`✅ Guardado en Firebase: ${est.nombre}`);
-                } catch (error) {
-                    console.error('Error al escribir en Firebase:', error);
+            const registro = JSON.parse(JSON.stringify(est)); // sin valores undefined (el SDK de Firebase los rechaza)
+            // Los campos opcionales vacíos no se escriben (las reglas validan repEmail/repCelular solo si existen).
+            ['repEmail', 'repCelular'].forEach(k => { if (registro[k] === '' || registro[k] == null) delete registro[k]; });
+            const ruta = `${rutaEstudiantes}/${est.cedula}`;
+            try {
+                await guardarValorFirebase(ruta, registro);
+                const verificado = await leerValorRutaFirebase(ruta);
+                if (!verificado || typeof verificado !== 'object' || normalizarCedula(verificado.cedula ?? est.cedula) !== est.cedula) {
+                    throw new Error('Firebase no confirmó el registro tras guardarlo.');
                 }
+            } catch (error) {
+                console.error('Error al escribir el estudiante en Firebase:', error);
+                const detalle = String(error?.message || error);
+                ultimoErrorGuardadoEstudiante = /permission[_ ]denied|REST 40[13]\b/i.test(detalle)
+                    ? `Firebase denegó la escritura en "${rutaEstudiantes}" (permisos). Verifica que las reglas publicadas permitan escribir al UID del docente. Detalle: ${detalle}`
+                    : `No se pudo guardar en Firebase: ${detalle}`;
+                return false;
             }
+            console.log(`✅ Guardado y confirmado en Firebase: ${est.nombre}`);
 
-            // Agregar al array local y refrescar UI
             if (!estudiantes.some(e => e.cedula === est.cedula)) {
                 estudiantes.push(est);
                 guardarBackup();
                 actualizarSelectores();
                 actualizarPaneles();
-                console.log(`💾 Guardado localmente: ${est.nombre}`);
             }
             return true;
         }
@@ -4761,7 +4789,7 @@ video {
                 }
             }
 
-            alert(`✅ ${exitos} estudiantes importados correctamente.\n❌ ${fallos} errores/duplicados.`);
+            alert(`✅ ${exitos} estudiantes importados correctamente.\n❌ ${fallos} errores/duplicados.` + (fallos && ultimoErrorGuardadoEstudiante ? `\n\nÚltimo motivo: ${ultimoErrorGuardadoEstudiante}` : ''));
         }
 
         async function agregarEstudiante() {
@@ -4782,10 +4810,10 @@ video {
             };
             const guardado = await guardarEstudiante(nuevo);
             if(guardado) {
-                alert("Estudiante guardado");
+                alert("✅ Estudiante guardado y confirmado en Firebase.");
                 limpiarFormulario();
             } else {
-                alert("No se pudo guardar (cédula duplicada o error de conexión).");
+                alert("❌ No se guardó el estudiante.\n\n" + (ultimoErrorGuardadoEstudiante || "Error desconocido. Revisa la consola del navegador (F12)."));
             }
         }
         function limpiarFormulario() {
