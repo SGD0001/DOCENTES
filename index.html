@@ -3352,47 +3352,141 @@ video {
         let FIREBASE_DOCENTE_UID_AUTORIZADO = 'I5EXDPc2ZafvMDw0eJC6DpInOxg2';
 
         // ==================== CONFIGURACIÓN POR INSTALACIÓN (multi-proyecto) ====================
-        // Formato de sgc-config.json (mismo directorio que index.html):
-        // { "firebaseConfig": { apiKey, authDomain, databaseURL, projectId, storageBucket, messagingSenderId, appId },
-        //   "docenteUid": "UID del docente administrador en ESE proyecto"
-        // }  (el logo de los reportes se administra en la base de datos: Configuración → Perfil institucional)
-        // - Sin archivo (404) o abierto desde disco (file://): se usan los valores por defecto de arriba.
-        // - Archivo presente pero inválido, o imposible de leer por la red: la aplicación NO arranca
-        //   (nunca se cae silenciosamente al proyecto por defecto: escribiría en la base equivocada).
+        // El MISMO sitio y el MISMO index.html pueden servir a varios proyectos de Firebase. Lo decide
+        // sgc-config.json (mismo directorio que index.html), en uno de dos formatos:
+        //
+        //  A) Una sola institución:
+        //     { "firebaseConfig": { apiKey, authDomain, databaseURL, projectId, storageBucket, messagingSenderId, appId },
+        //       "docenteUid": "UID del docente administrador en ESE proyecto" }
+        //
+        //  B) Varias instituciones en el mismo sitio:
+        //     { "predeterminada": "id-de-una-institucion",
+        //       "instituciones": { "id-1": { "nombre": "…", "firebaseConfig": {…}, "docenteUid": "…" }, "id-2": {…} } }
+        //     Cuál se usa, en este orden:  1) enlace con ?i=id-1   2) la última elegida en este navegador
+        //     3) "predeterminada"   4) si solo hay una   5) pantalla para elegir institución.
+        //     El enlace ?i=id-1 sirve para dar a cada institución su dirección propia; ?i= (vacío) abre el selector.
+        //
+        // - Sin archivo (404), o abierto desde disco (file://): se usan los valores por defecto de arriba.
+        // - Archivo presente pero inválido, o imposible de leer por la red, o ?i= que no existe: la aplicación
+        //   NO arranca (nunca se cae en silencio a otro proyecto: escribiría en la base equivocada).
+        // - Al cambiar de institución se cierra la sesión del navegador (no se mezclan sesiones de proyectos).
         // Autor del sistema: Mgt. César Godoy R.
-        let SGC_CONFIG_INSTALACION = null;
+        let SGC_CONFIG_INSTALACION = null, SGC_INSTITUCION_ID = '', SGC_INSTITUCIONES = null;
+        const SGC_CLAVE_INSTITUCION = 'sgcInstitucion', SGC_CLAVE_SESION_INSTITUCION = 'sgcInstitucionSesion';
+        function sgcFallaConfig(msg) {
+            const caja = document.createElement('div');
+            caja.setAttribute('role', 'alert');
+            caja.id = 'sgc-config-error';
+            caja.style.cssText = 'position:fixed;inset:0 0 auto 0;z-index:99999;background:#7f1d1d;color:#fff;padding:14px 18px;font:600 14px system-ui,sans-serif';
+            caja.textContent = 'Configuración de la instalación inválida: ' + msg;
+            document.body.appendChild(caja);
+            throw new Error('[CONFIG] ' + msg);
+        }
+        function sgcErrorConfigInstitucion(c) {
+            const fb = c && c.firebaseConfig;
+            const urlOk = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebaseio\.com|firebasedatabase\.app)\/?$/i.test(String(fb?.databaseURL || ''));
+            if (!fb || !fb.apiKey || !fb.projectId || !fb.authDomain || !urlOk) return 'firebaseConfig incompleto (apiKey, authDomain, projectId y databaseURL https válidos).';
+            if (!/^[A-Za-z0-9]{20,40}$/.test(String(c.docenteUid || '').trim())) return 'docenteUid ausente o con formato inválido.';
+            return '';
+        }
+        function sgcMostrarSelectorInstitucion(lista, actualId, bloqueante) {
+            document.getElementById('sgc-selector-institucion')?.remove();
+            const capa = document.createElement('div');
+            capa.id = 'sgc-selector-institucion'; capa.setAttribute('role', 'dialog'); capa.setAttribute('aria-modal', 'true'); capa.setAttribute('aria-label', 'Selecciona tu institución');
+            capa.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,sans-serif';
+            const caja = document.createElement('div');
+            caja.style.cssText = 'background:#fff;color:#0f172a;border-radius:14px;max-width:440px;width:100%;max-height:90vh;overflow:auto;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35)';
+            const h = document.createElement('h2'); h.textContent = 'Selecciona tu institución'; h.style.cssText = 'font-size:18px;font-weight:700;margin:0 0 4px';
+            const p = document.createElement('p'); p.textContent = 'Elige la institución a la que perteneces. Tu elección se recordará en este navegador.'; p.style.cssText = 'font-size:13px;color:#475569;margin:0 0 14px';
+            caja.append(h, p);
+            Object.keys(lista).forEach(id => {
+                const b = document.createElement('button'); b.type = 'button';
+                b.textContent = (lista[id].nombre || id) + (id === actualId ? '  ✓' : '');
+                b.style.cssText = 'display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#0f172a;font:600 14px system-ui,sans-serif;cursor:pointer';
+                b.addEventListener('click', () => {
+                    try { localStorage.setItem(SGC_CLAVE_INSTITUCION, id); } catch (_) {}
+                    const u = new URL(location.href); u.searchParams.set('i', id); u.hash = ''; location.href = u.toString();
+                });
+                caja.appendChild(b);
+            });
+            if (!bloqueante) {
+                const c = document.createElement('button'); c.type = 'button'; c.textContent = 'Cancelar';
+                c.style.cssText = 'margin-top:4px;padding:8px 12px;border:0;background:none;color:#475569;font:600 13px system-ui,sans-serif;cursor:pointer';
+                c.addEventListener('click', () => capa.remove());
+                caja.appendChild(c);
+            }
+            capa.appendChild(caja); document.body.appendChild(capa);
+            caja.querySelector('button')?.focus();
+        }
         async function cargarConfiguracionInstalacion() {
-            const falla = (msg) => {
-                const caja = document.createElement('div');
-                caja.setAttribute('role', 'alert');
-                caja.id = 'sgc-config-error';
-                caja.style.cssText = 'position:fixed;inset:0 0 auto 0;z-index:99999;background:#7f1d1d;color:#fff;padding:14px 18px;font:600 14px system-ui,sans-serif';
-                caja.textContent = 'Configuración de la instalación inválida: ' + msg;
-                document.body.appendChild(caja);
-                throw new Error('[CONFIG] ' + msg);
-            };
             let resp;
             try {
                 const ctl = new AbortController(); const lim = setTimeout(() => ctl.abort(), 6000);
                 try { resp = await fetch('sgc-config.json', { cache: 'no-store', signal: ctl.signal }); } finally { clearTimeout(lim); }
             } catch (e) {
                 if (location.protocol === 'file:') return false;
-                return falla('no se pudo leer sgc-config.json (' + (e?.message || e) + '). Revisa tu conexión y recarga.');
+                return sgcFallaConfig('no se pudo leer sgc-config.json (' + (e?.message || e) + '). Revisa tu conexión y recarga.');
             }
             if (resp.status === 404 || location.protocol === 'file:') return false;
-            if (!resp.ok) return falla('sgc-config.json respondió HTTP ' + resp.status + '.');
+            if (!resp.ok) return sgcFallaConfig('sgc-config.json respondió HTTP ' + resp.status + '.');
             let c;
-            try { c = await resp.json(); } catch (_) { return falla('sgc-config.json no es un JSON válido.'); }
-            const fb = c && c.firebaseConfig;
-            const urlOk = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebaseio\.com|firebasedatabase\.app)\/?$/i.test(String(fb?.databaseURL || ''));
-            if (!fb || !fb.apiKey || !fb.projectId || !fb.authDomain || !urlOk) return falla('firebaseConfig incompleto (apiKey, authDomain, projectId y databaseURL https válidos).');
-            const uid = String(c.docenteUid || '').trim();
-            if (!/^[A-Za-z0-9]{20,40}$/.test(uid)) return falla('docenteUid ausente o con formato inválido.');
-            firebaseConfig = { ...fb, databaseURL: String(fb.databaseURL).replace(/\/+$/, '') };
-            FIREBASE_DOCENTE_UID_AUTORIZADO = uid;
+            try { c = await resp.json(); } catch (_) { return sgcFallaConfig('sgc-config.json no es un JSON válido.'); }
+            if (!c || typeof c !== 'object') return sgcFallaConfig('sgc-config.json está vacío.');
+
+            let elegida, idElegido = '';
+            if (c.instituciones && typeof c.instituciones === 'object') {
+                // Formato B: varias instituciones. Las entradas inválidas se omiten de la lista; si la elegida es inválida, no arranca.
+                const todas = {}; const lista = {};
+                Object.keys(c.instituciones).forEach(id => {
+                    if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(id)) return;
+                    todas[id] = c.instituciones[id];
+                    if (!sgcErrorConfigInstitucion(c.instituciones[id])) lista[id] = { ...c.instituciones[id], nombre: String(c.instituciones[id].nombre || id).slice(0, 120) };
+                });
+                if (!Object.keys(lista).length) return sgcFallaConfig('"instituciones" no contiene ninguna entrada válida.');
+                SGC_INSTITUCIONES = lista;
+                const q = new URLSearchParams(location.search).get('i');
+                let almacenada = ''; try { almacenada = localStorage.getItem(SGC_CLAVE_INSTITUCION) || ''; } catch (_) {}
+                if (q !== null && q.trim() === '') { sgcMostrarSelectorInstitucion(lista, '', true); await new Promise(() => {}); }
+                if (q !== null) {
+                    idElegido = q.trim().toLowerCase();
+                    if (!lista[idElegido]) {
+                        const motivo = todas[idElegido] ? sgcErrorConfigInstitucion(todas[idElegido]) : 'no existe en sgc-config.json';
+                        return sgcFallaConfig(`la institución "${idElegido}" del enlace (?i=) no es utilizable: ${motivo}`);
+                    }
+                    try { localStorage.setItem(SGC_CLAVE_INSTITUCION, idElegido); } catch (_) {}
+                } else if (almacenada && lista[almacenada]) idElegido = almacenada;
+                else if (c.predeterminada) {
+                    if (!lista[String(c.predeterminada)]) return sgcFallaConfig(`la institución predeterminada "${c.predeterminada}" no existe o es inválida.`);
+                    idElegido = String(c.predeterminada);
+                } else if (Object.keys(lista).length === 1) idElegido = Object.keys(lista)[0];
+                else { sgcMostrarSelectorInstitucion(lista, '', true); await new Promise(() => {}); }
+                elegida = lista[idElegido];
+            } else {
+                // Formato A: una sola institución
+                const err = sgcErrorConfigInstitucion(c);
+                if (err) return sgcFallaConfig(err);
+                elegida = c; idElegido = String(c.firebaseConfig.projectId);
+            }
+
+            // No mezclar sesiones entre proyectos: si cambió la institución en esta pestaña, se limpia la sesión.
+            try {
+                const previa = sessionStorage.getItem(SGC_CLAVE_SESION_INSTITUCION);
+                if (previa && previa !== idElegido) { sessionStorage.clear(); _authRefreshToken = null; }
+                sessionStorage.setItem(SGC_CLAVE_SESION_INSTITUCION, idElegido);
+            } catch (_) {}
+
+            firebaseConfig = { ...elegida.firebaseConfig, databaseURL: String(elegida.firebaseConfig.databaseURL).replace(/\/+$/, '') };
+            FIREBASE_DOCENTE_UID_AUTORIZADO = String(elegida.docenteUid).trim();
             RTDB_URL = firebaseConfig.databaseURL;
-            SGC_CONFIG_INSTALACION = c;
-            console.info('[CONFIG] Instalación cargada: proyecto', firebaseConfig.projectId);
+            SGC_CONFIG_INSTALACION = c; SGC_INSTITUCION_ID = idElegido;
+            if (SGC_INSTITUCIONES && Object.keys(SGC_INSTITUCIONES).length > 1) {
+                const chip = document.createElement('button'); chip.type = 'button'; chip.id = 'sgc-cambiar-institucion';
+                chip.textContent = '🏫 ' + (SGC_INSTITUCIONES[idElegido]?.nombre || idElegido) + ' · Cambiar';
+                chip.style.cssText = 'position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:9000;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 10px;border:1px solid #cbd5e1;border-radius:999px;background:rgba(255,255,255,.92);color:#334155;font:600 11px system-ui,sans-serif;cursor:pointer';
+                chip.addEventListener('click', () => sgcMostrarSelectorInstitucion(SGC_INSTITUCIONES, SGC_INSTITUCION_ID, false));
+                document.body.appendChild(chip);
+            }
+            console.info('[CONFIG] Instalación cargada:', idElegido, '→ proyecto', firebaseConfig.projectId);
             return true;
         }
 
