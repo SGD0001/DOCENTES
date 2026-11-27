@@ -2489,6 +2489,7 @@ video {
                     <section class="bg-slate-50 rounded-xl p-4">
                         <div class="flex flex-wrap justify-between items-end gap-3 mb-3"><div><h4 class="font-bold text-sm">📊 Reporte de asistencia y novedades</h4><p class="text-[11px] text-slate-500 mt-1">Incluye asignatura, asistencia, novedades individuales y observaciones generales del curso dentro del rango seleccionado.</p></div><button onclick="generarReporteAsistencia()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold">👁️ Previsualizar reporte</button></div>
                         <div class="flex flex-wrap gap-3"><label class="text-xs">Desde <input id="asistencia-reporte-desde" type="date" class="ml-1 px-2 py-1 border rounded"></label><label class="text-xs">Hasta <input id="asistencia-reporte-hasta" type="date" class="ml-1 px-2 py-1 border rounded"></label><label class="text-xs">Curso <select id="asistencia-reporte-curso" class="ml-1 px-2 py-1 border rounded"><option value="">Todos</option></select></label><label class="text-xs">Paralelo <select id="asistencia-reporte-paralelo" class="ml-1 px-2 py-1 border rounded"><option value="">Todos</option></select></label></div>
+                        <p id="asistencia-reporte-nota" class="text-[11px] text-slate-500 mt-2" role="status"></p>
                     </section>
                 </div>
 
@@ -6147,14 +6148,14 @@ video {
             const contenido = `
                 <div class="filtro">
                     <strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}<br>
-                    <strong>Estudiante:</strong> ${escapeHtml(est?.nombre || reg.nombre || '')}<br>
+                    <strong>Estudiante:</strong> ${sgcNombreResaltado(est?.nombre || reg.nombre || '', reg.nota)}<br>
                     <strong>Curso/Paralelo:</strong> ${escapeHtml(est?.curso||'')} "${escapeHtml(est?.paralelo||'')}"<br>
                     <strong>Período:</strong> ${escapeHtml(t?.label||'')} — <strong>${escapeHtml(etiquetaCampo)}</strong>${esInsumoTest ? ' (🧪 Test)' : ''}<br>
                     <strong>Inicio:</strong> ${escapeHtml(horaIni)} &nbsp; <strong>Fin:</strong> ${escapeHtml(horaFin)}
                 </div>
                 ${reg.motivoSalida ? `<div class="filtro" style="background:#fef2f2;border-color:#fecaca;color:#991b1b"><strong>⚠️ Finalizado/a automáticamente:</strong> ${escapeHtml(reg.motivoSalida)}</div>` : ''}
                 <table>
-                    <tr><th style="width:180px">Nota obtenida</th><td><strong style="font-size:16px">${formatearNota(reg.nota)} / 10</strong></td></tr>
+                    <tr><th style="width:180px">Nota obtenida</th><td${sgcClaseNotaBaja(reg.nota)}><strong style="font-size:16px">${formatearNota(reg.nota)} / 10</strong></td></tr>
                     <tr><th>Aciertos</th><td>${reg.correctas} de ${reg.total} (${puntosPorAcierto} pts por acierto)</td></tr>
                 </table>
                 <h2>Detalle de respuestas</h2>
@@ -6186,7 +6187,7 @@ video {
             const contenido = `
                 <div class="filtro">
                     <strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}<br>
-                    <strong>Estudiante:</strong> ${escapeHtml(est?.nombre || reg.nombre || '')}<br>
+                    <strong>Estudiante:</strong> ${sgcNombreResaltado(est?.nombre || reg.nombre || '', reg.nota)}<br>
                     <strong>Curso/Paralelo:</strong> ${escapeHtml(est?.curso||'')} "${escapeHtml(est?.paralelo||'')}"<br>
                     <strong>Período:</strong> Examen Supletorio (Anual)<br>
                     <strong>Promedio anual previo:</strong> ${(reg.promedioAnualPrevio !== null && reg.promedioAnualPrevio !== undefined) ? formatearNota(reg.promedioAnualPrevio) : '-'} &nbsp; <strong>Resultado:</strong> ${aprobo ? '✅ Aprueba la materia' : '⛔ Pierde la materia'}<br>
@@ -6194,7 +6195,7 @@ video {
                 </div>
                 ${reg.motivoSalida ? `<div class="filtro" style="background:#fef2f2;border-color:#fecaca;color:#991b1b"><strong>⚠️ Finalizado/a automáticamente:</strong> ${escapeHtml(reg.motivoSalida)}</div>` : ''}
                 <table>
-                    <tr><th style="width:180px">Nota obtenida</th><td><strong style="font-size:16px">${formatearNota(reg.nota)} / 10</strong></td></tr>
+                    <tr><th style="width:180px">Nota obtenida</th><td${sgcClaseNotaBaja(reg.nota)}><strong style="font-size:16px">${formatearNota(reg.nota)} / 10</strong></td></tr>
                     <tr><th>Aciertos</th><td>${reg.correctas} de ${reg.total} (${puntosPorAcierto} pts por acierto)</td></tr>
                 </table>
                 <h2>Detalle de respuestas</h2>
@@ -12560,11 +12561,54 @@ video {
             const metaHtml=metadatos.length>1?'<div class="filtro">'+metadatos.slice(1).map(f=>'<div><strong>'+escapeHtml(f[0])+':</strong> '+escapeHtml(f[1])+'</div>').join('')+'</div>':'';
             const contenido='<div class="actions"><a class="xlsx-download" href="'+urlXlsx+'" download="'+escapeHtml(nombre)+'">📊 Descargar hoja de cálculo (.xlsx)</a></div>'+
                 metaHtml+'<div class="csv-table-wrap"><table class="csv-table"><thead><tr>'+th+'</tr></thead><tbody>'+tbody+'</tbody></table></div>'+
-                '<style>@page{size:landscape;margin:8mm}.csv-table-wrap{overflow-x:auto}table.csv-table{table-layout:auto;font-size:8px}.csv-table th,.csv-table td{padding:3px 4px;font-size:8px}@media print{.csv-table-wrap{overflow:visible}table.csv-table{width:100%;table-layout:fixed}}.xlsx-download{display:inline-block;background:#047857;color:#fff;text-decoration:none;padding:8px 12px;border-radius:6px;font-weight:700}</style>';
+                '<style>@page{size:landscape;margin:8mm}.csv-table-wrap{overflow-x:auto}table.csv-table{font-size:9px}.csv-table th,.csv-table td{padding:3px 6px;font-size:9px}@media print{.csv-table-wrap{overflow:visible}}.xlsx-download{display:inline-block;background:#047857;color:#fff;text-decoration:none;padding:8px 12px;border-radius:6px;font-weight:700}</style>';
             const html=documentoReporte(titulo,contenido,'landscape');
             const win=ventanaPreabierta&&!ventanaPreabierta.closed?ventanaPreabierta:window.open('','_blank');
             if(win&&!win.closed){win.document.open();win.document.write(html);win.document.close();win.focus();win.addEventListener('beforeunload',()=>URL.revokeObjectURL(urlXlsx),{once:true});return;}
             mostrarReporteEnModal(html,()=>URL.revokeObjectURL(urlXlsx));
+        }
+        // Clasifica cada celda por la longitud de su contenido para que las columnas se ajusten a él:
+        // textos cortos en una línea (nw), números centrados (num) y textos largos con ajuste de línea (largo).
+        // Resaltado de rendimiento: notas inferiores a 7 (criterio indicado por el docente).
+        const SGC_NOTA_BAJA = 7;
+        function sgcNotaEsBaja(n) { const v = Number(n); return n !== null && n !== undefined && n !== '' && Number.isFinite(v) && v < SGC_NOTA_BAJA; }
+        function sgcClaseNotaBaja(n) { return sgcNotaEsBaja(n) ? ' class="nota-baja"' : ''; }
+        function sgcNombreResaltado(nombre, n) { return sgcNotaEsBaja(n) ? '<span class="est-bajo">' + escapeHtml(nombre) + '</span>' : escapeHtml(nombre); }
+        // En las tablas de notas (clase reporte-notas-curso): marca las notas < 7 y el nombre del estudiante de esa fila.
+        function sgcResaltarNotasBajas(tabla) {
+            const filas = [...tabla.rows]; if (filas.length < 2) return 0;
+            const cab = [...filas[0].cells].map(c => sgcEtiquetaColumna(c.textContent));
+            const colEst = cab.findIndex(c => /^estudiante$/i.test(c)); if (colEst < 0) return 0;
+            let estudiantesBajos = 0;
+            filas.slice(1).forEach(f => {
+                let bajo = false;
+                [...f.cells].forEach((c, i) => {
+                    if (i === colEst || /^#$/.test(cab[i] || '')) return;
+                    const m = /^(\d+(?:[.,]\d+)?)\s*↻?$/.exec((c.textContent || '').trim());
+                    if (m && Number(m[1].replace(',', '.')) < SGC_NOTA_BAJA) { c.classList.add('nota-baja'); bajo = true; }
+                });
+                if (bajo && f.cells[colEst]) { f.cells[colEst].classList.add('est-bajo'); estudiantesBajos++; }
+            });
+            return estudiantesBajos;
+        }
+        function sgcAjustarTablasReporte(html) {
+            const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + html + '</body></html>', 'text/html');
+            doc.querySelectorAll('table').forEach(t => {
+                t.classList.add('sgc-tabla');
+                if (t.classList.contains('reporte-notas-curso') && sgcResaltarNotasBajas(t) > 0 && !t.nextElementSibling?.classList?.contains('leyenda-bajo')) {
+                    const ley = doc.createElement('p'); ley.className = 'meta leyenda-bajo';
+                    ley.innerHTML = '<span class="est-bajo">Resaltado en rojo</span>: estudiantes con alguna nota inferior a ' + SGC_NOTA_BAJA + ' (la nota se muestra en rojo).';
+                    t.insertAdjacentElement('afterend', ley);
+                }
+                t.querySelectorAll('th,td').forEach(c => {
+                    const copia = c.cloneNode(true); copia.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+                    const txt = (copia.textContent || '').trim();
+                    const maxLinea = txt.split('\n').reduce((m, l) => Math.max(m, l.trim().length), 0);
+                    if (txt && /^[\d.,%\s↻\-–\/+()]+$/.test(txt)) c.classList.add('num');
+                    c.classList.add(maxLinea <= 30 ? 'nw' : 'largo');
+                });
+            });
+            return doc.body.innerHTML;
         }
         function documentoReporte(titulo, contenido, orientacion = 'portrait') {
             return `<!DOCTYPE html>
@@ -12582,21 +12626,22 @@ video {
         .filtro { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; margin: 12px 0; font-size: 12px; }
         .actions { margin: 14px 0; }
         button { background: #0369a1; border: 0; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 11px; table-layout: fixed; }
-        th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: normal; line-height: 1.25; }
-        th { background: #e0f2fe; color: #0c4a6e; }
-        tr:nth-child(even) { background: #f8fafc; }
+        table { border-collapse: collapse; width: auto; max-width: 100%; margin: 0 0 16px; font-size: 11px; table-layout: auto; }
+        th, td { border: 1px solid #d5dee9; padding: 4px 8px; text-align: left; vertical-align: middle; line-height: 1.3; }
+        th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; font-size: 10.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        tr:nth-child(even) td { background: #f6f9fc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table td.nota-baja { color: #b91c1c; font-weight: 700; background: #fef2f2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table td.est-bajo, span.est-bajo { background: #fecaca; color: #7f1d1d; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        span.est-bajo { padding: 0 4px; border-radius: 3px; }
+        table td.est-falta, span.est-falta { background: #fecaca; color: #7f1d1d; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table td.est-justificada, span.est-justificada { background: #fef3c7; color: #78350f; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        span.est-falta, span.est-justificada { padding: 0 4px; border-radius: 3px; }
+        th.nw, td.nw { white-space: nowrap; }
+        th.largo, td.largo { white-space: normal; overflow-wrap: anywhere; min-width: 180px; max-width: 420px; vertical-align: top; }
+        th.num, td.num, .center { text-align: center; }
         .right { text-align: right; }
-        .center { text-align: center; }
-        .col-num { width: 34px; }
-        .col-nombre { width: 34%; }
-        .col-cedula { width: 86px; }
-        .col-correo { width: 20%; }
-        .col-fecha { width: 125px; }
-        .col-nota { width: 70px; }
-        .col-abrev { width: 70px; text-align: center; font-weight: bold; }
-        .col-cantidad { width: 80px; text-align: center; }
-        .col-porcentaje { width: 80px; text-align: center; }
+        .col-abrev { text-align: center; font-weight: bold; }
+        .col-cantidad, .col-porcentaje { text-align: center; }
         .resumen { margin-top: 22px; page-break-inside: avoid; }
         @page { size: ${orientacion}; margin: ${orientacion === 'landscape' ? '8mm' : '12mm'}; }
         @media print {
@@ -12617,7 +12662,7 @@ video {
         <div class="meta">Generado: ${escapeHtml(nptFormatoFechaHora(new Date()))}</div>
     </header>
     <div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
-    ${sgcQuitarContenidoActivo(contenido)}
+    ${sgcAjustarTablasReporte(sgcQuitarContenidoActivo(contenido))}
 
 </body>
 </html>`;
@@ -12817,9 +12862,8 @@ video {
             if (!t) { alert('No se encontró el trimestre seleccionado.'); return; }
             let html = `<div class="filtro"><strong>Trimestre:</strong> ${escapeHtml(t.label)}${t.meses ? ' ('+escapeHtml(t.meses)+')' : ''}<br><strong>Estudiantes incluidos:</strong> ${alumnos.length}<br><strong>Solicitudes de recuperación aprobadas en el trimestre:</strong> ${alumnos.reduce((total, e) => total + nptConteoSolicitudesAprobadas(e.cedula, t.num), 0)}</div>
                 <style>
-                    .reporte-notas-curso{table-layout:auto}
-                    .reporte-notas-curso th,.reporte-notas-curso td{text-align:center;vertical-align:middle}
-                    .reporte-notas-curso th:nth-child(2),.reporte-notas-curso td:nth-child(2){text-align:left;min-width:180px}
+                                        .reporte-notas-curso th,.reporte-notas-curso td{text-align:center;vertical-align:middle}
+                    .reporte-notas-curso th:nth-child(2),.reporte-notas-curso td:nth-child(2){text-align:left}
                     .reporte-notas-curso thead{display:table-header-group}
                     .reporte-notas-curso tr{break-inside:avoid;page-break-inside:avoid}
                     .reporte-notas-pendiente{color:#64748b;font-style:italic;font-size:10px}
@@ -13085,7 +13129,7 @@ video {
                 celdaExamen = `<td>${efectiva === null ? '<span class="reporte-notas-pendiente">Pendiente</span>' : `${formatearNota(efectiva)}${rec !== null ? ' ↻' : ''}`}</td>`;
             }
             const html = `<div class="filtro"><strong>Estudiante:</strong> ${escapeHtml(est.nombre)}<br><strong>Curso:</strong> ${escapeHtml(est.curso || '-')} · <strong>Paralelo:</strong> ${escapeHtml(est.paralelo || '-')}<br><strong>Materia:</strong> ${escapeHtml(asignaturasReporteCurso(est.curso, est.paralelo))}<br><strong>Período:</strong> ${escapeHtml(cfgPeriodoActivo?.nombre || 'No configurado')} · <strong>Trimestre:</strong> ${escapeHtml(t.label)}${t.meses ? ' ('+escapeHtml(t.meses)+')' : ''}<br><strong>Solicitudes de recuperación aprobadas:</strong> ${nptConteoSolicitudesAprobadas(est.cedula, t.num)}</div>
-                <style>.reporte-notas-curso{table-layout:auto}.reporte-notas-curso th,.reporte-notas-curso td{text-align:center;vertical-align:middle}.reporte-notas-curso th:nth-child(2),.reporte-notas-curso td:nth-child(2){text-align:left;min-width:180px}.reporte-notas-pendiente{color:#64748b;font-style:italic;font-size:10px}</style>
+                <style>.reporte-notas-curso th,.reporte-notas-curso td{text-align:center;vertical-align:middle}.reporte-notas-curso th:nth-child(2),.reporte-notas-curso td:nth-child(2){text-align:left}.reporte-notas-pendiente{color:#64748b;font-style:italic;font-size:10px}</style>
                 <table class="reporte-notas-curso"><thead><tr><th>#</th><th>Estudiante</th>${columnas}${examenActivo ? '<th>Nota de examen</th>' : ''}</tr></thead><tbody><tr><td>1</td><td>${escapeHtml(est.nombre)}</td>${celdas}${celdaExamen}</tr></tbody></table>
                 <p class="meta">Las notas de insumos se muestran cuando están verificadas por el docente. «Pendiente» indica que aún no hay una calificación docente confirmada. ↻ señala que se aplicó una recuperación.</p>`;
             abrirODescargarReporte(`Reporte de notas individual — ${t.label}`, html, `reporte_notas_individual_t${t.num}_${fechaArchivo()}.html`, 'landscape');
@@ -14336,22 +14380,39 @@ video {
                 if(btn){btn.disabled=false;btn.textContent=textoBtn;}
             }
         }
-        // Cursos y paralelos que realmente figuran en el horario del docente (conserva la selección actual).
+        // Clases del horario que caen dentro del rango de fechas (solo días laborables del calendario académico).
+        // Sin rango válido devuelve todo el horario.
+        function horarioEnRangoAsistencia(desde, hasta) {
+            if (!desde || !hasta || desde > hasta) return horarioDocente.slice();
+            const dias = new Set();
+            for (let d = new Date(desde + 'T12:00:00'), fin = new Date(hasta + 'T12:00:00'), n = 0; d <= fin && n < 800; d.setDate(d.getDate() + 1), n++) {
+                const f = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                if (fechaEsLaborable(f)) dias.add(normalizarDiaHorario(asistenciaDia(f)));
+            }
+            return horarioDocente.filter(x => dias.has(normalizarDiaHorario(x.dia)));
+        }
+        // Cursos y paralelos con clase en el rango de fechas elegido (conserva la selección si sigue siendo válida).
         function poblarFiltrosReporteAsistencia() {
             const selC = document.getElementById('asistencia-reporte-curso'), selP = document.getElementById('asistencia-reporte-paralelo');
             if (!selC || !selP) return;
+            const desdeEl = document.getElementById('asistencia-reporte-desde'), hastaEl = document.getElementById('asistencia-reporte-hasta');
+            const enRango = horarioEnRangoAsistencia(desdeEl?.value || '', hastaEl?.value || '');
             const cursoPrev = selC.value, paraPrev = selP.value;
-            const cursos = [...new Set(horarioDocente.map(x => x.curso))].sort((a, b) => String(a).localeCompare(String(b), 'es', { numeric: true }));
+            const ordenar = (a, b) => String(a).localeCompare(String(b), 'es', { numeric: true });
             const llenar = (sel, valores, prev) => {
                 sel.textContent = '';
                 const t = document.createElement('option'); t.value = ''; t.textContent = 'Todos'; sel.appendChild(t);
                 valores.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
                 sel.value = valores.includes(prev) ? prev : '';
             };
-            llenar(selC, cursos, cursoPrev);
-            const paralelos = [...new Set(horarioDocente.filter(x => !selC.value || x.curso === selC.value).map(x => x.paralelo))].sort((a, b) => String(a).localeCompare(String(b), 'es', { numeric: true }));
-            llenar(selP, paralelos, paraPrev);
-            if (!selC.dataset.enlazado) { selC.dataset.enlazado = '1'; selC.addEventListener('change', poblarFiltrosReporteAsistencia); }
+            llenar(selC, [...new Set(enRango.map(x => x.curso))].sort(ordenar), cursoPrev);
+            llenar(selP, [...new Set(enRango.filter(x => !selC.value || x.curso === selC.value).map(x => x.paralelo))].sort(ordenar), paraPrev);
+            const nota = document.getElementById('asistencia-reporte-nota');
+            if (nota) nota.textContent = !desdeEl?.value || !hastaEl?.value ? 'Elige las fechas: se listarán solo los cursos y paralelos con clase en ese rango según tu horario.' : (enRango.length ? '' : 'Tu horario no tiene clases en ese rango de fechas.');
+            if (!selC.dataset.enlazado) {
+                selC.dataset.enlazado = '1';
+                [selC, desdeEl, hastaEl].forEach(el => el && el.addEventListener('change', poblarFiltrosReporteAsistencia));
+            }
         }
         async function generarReporteAsistencia() {
             if (!horarioDocente.length) return alert('Primero configura el horario en Configuración.');
@@ -14415,7 +14476,7 @@ video {
 
             const etiquetasEstado = { presente: 'Presente', ausente: 'Ausente', atraso: 'Atraso', justificado: 'Falta justificada' };
             const cabeceras = ['Estudiante','Presentes','Ausentes','Atrasos','Faltas justificadas','Sin registro','Detalle por clase','Novedades individuales'];
-            let bloquesReporte = '';
+            let bloquesReporte = '', totalConFaltas = 0, totalSoloJustificadas = 0;
             gruposAsistencia.forEach(grupo => {
                 const alumnosGrupo = estudiantes.filter(est => est.curso === grupo.curso && est.paralelo === grupo.paralelo);
                 if (!alumnosGrupo.length) return;
@@ -14434,12 +14495,14 @@ video {
                         if (reg?.observacion) novedades.push(sesion.fecha + ': ' + reg.observacion);
                     });
                     const valores = [est.nombre, conteo.presente, conteo.ausente, conteo.atraso, conteo.justificado, conteo.sinRegistro, detalle.join('\n'), [...new Set(novedades)].join('\n')];
-                    return '<tr>' + valores.map((v, i) => '<td' + (i === 6 ? ' class="col-detalle"' : i === 7 ? ' class="col-novedades"' : '') + '>' + escapeHtml(v).replace(/\n/g, '<br>') + '</td>').join('') + '</tr>';
+                    if (conteo.ausente > 0) totalConFaltas++; else if (conteo.justificado > 0) totalSoloJustificadas++;
+                    const claseCelda = i => i === 0 ? (conteo.ausente > 0 ? ' class="est-falta"' : conteo.justificado > 0 ? ' class="est-justificada"' : '') : i === 6 ? ' class="col-detalle"' : i === 7 ? ' class="col-novedades"' : '';
+                    return '<tr>' + valores.map((v, i) => '<td' + claseCelda(i) + '>' + escapeHtml(v).replace(/\n/g, '<br>') + '</td>').join('') + '</tr>';
                 }).join('');
                 const contexto = '<div class="filtro"><strong>Clases programadas:</strong> ' + grupo.sesiones.length + ' · <strong>Estudiantes:</strong> ' + alumnosGrupo.length + (observacionesCurso.length ? '<br><strong>Observaciones del curso:</strong><br>' + observacionesCurso.map(escapeHtml).join('<br>') : '') + '</div>';
                 bloquesReporte += '<section class="asistencia-grupo"><h2>' + escapeHtml(grupo.curso) + ' · Paralelo ' + escapeHtml(grupo.paralelo) + ' · ' + escapeHtml(grupo.asignatura || 'Materia no especificada') + '</h2>' + contexto + '<div class="asistencia-reporte-wrap"><table class="asistencia-reporte"><thead><tr>' + cabeceras.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>' + filasHtml + '</tbody></table></div></section>';
             });
-            const tabla = '<div class="filtro"><strong>Fechas del reporte:</strong> ' + escapeHtml(desde) + ' al ' + escapeHtml(hasta) + ' · <strong>Curso:</strong> ' + escapeHtml(cursoSel || 'Todos') + ' · <strong>Paralelo:</strong> ' + escapeHtml(paraleloSel || 'Todos') + '</div><style>.asistencia-reporte-wrap{overflow-x:auto}table.asistencia-reporte{table-layout:auto;font-size:10px}.asistencia-reporte th,.asistencia-reporte td{padding:6px 7px;vertical-align:top}.asistencia-reporte th{white-space:nowrap}.asistencia-reporte td{white-space:pre-line;min-width:72px}.asistencia-reporte td:nth-child(1){min-width:150px;font-weight:700}.asistencia-reporte td.col-detalle{min-width:280px}.asistencia-reporte td.col-novedades{min-width:180px}.asistencia-grupo{break-after:page;page-break-after:always}.asistencia-grupo:last-of-type{break-after:auto;page-break-after:auto}.asistencia-reporte thead{display:table-header-group}.asistencia-reporte tr{break-inside:avoid;page-break-inside:avoid}@media print{.asistencia-reporte-wrap{overflow:visible}table.asistencia-reporte{width:100%;font-size:8px;table-layout:fixed}.asistencia-reporte th,.asistencia-reporte td{padding:4px;overflow-wrap:anywhere}}</style>' + bloquesReporte;
+            const tabla = '<div class="filtro"><strong>Fechas del reporte:</strong> ' + escapeHtml(desde) + ' al ' + escapeHtml(hasta) + ' · <strong>Curso:</strong> ' + escapeHtml(cursoSel || 'Todos') + ' · <strong>Paralelo:</strong> ' + escapeHtml(paraleloSel || 'Todos') + '</div>' + (totalConFaltas + totalSoloJustificadas ? '<p class="meta">Nombres resaltados: <span class="est-falta">con faltas</span>' + (totalSoloJustificadas ? ' · <span class="est-justificada">solo con faltas justificadas</span>' : '') + '. Con faltas: ' + totalConFaltas + (totalSoloJustificadas ? ' · Solo justificadas: ' + totalSoloJustificadas : '') + '.</p>' : '') + '<style>.asistencia-reporte-wrap{overflow-x:auto}table.asistencia-reporte{font-size:10px}.asistencia-reporte td.col-detalle,.asistencia-reporte td.col-novedades{font-size:9px}.asistencia-reporte td:first-child{font-weight:700}.asistencia-reporte thead{display:table-header-group}.asistencia-reporte tr{break-inside:avoid;page-break-inside:avoid}.asistencia-grupo{break-after:page;page-break-after:always}.asistencia-grupo:last-of-type{break-after:auto;page-break-after:auto}@media print{.asistencia-reporte-wrap{overflow:visible}table.asistencia-reporte{font-size:8.5px}.asistencia-reporte td.col-detalle,.asistencia-reporte td.col-novedades{font-size:8px}}</style>' + bloquesReporte;
             abrirODescargarReporte('Reporte de Asistencia y Novedades', tabla,
                 'reporte_asistencia_novedades_' + desde + '_' + hasta + '.html', 'landscape', ventanaPrevia);
         }
@@ -15240,7 +15303,7 @@ video {
                     <tr><th>Curso / Paralelo</th><td>${escapeHtml(estudianteActual.curso)} "${escapeHtml(estudianteActual.paralelo)}"</td></tr>
                     <tr><th>Período</th><td>${t?.label || ''}</td></tr>
                     <tr><th>Tipo de entrega</th><td>${escapeHtml(etiquetaTp)}</td></tr>
-                    <tr><th>Nota</th><td>${formatearNota(numero(nota.nota))} / 10</td></tr>
+                    <tr><th>Nota</th><td${sgcNotaEsBaja(numero(nota.nota)) ? ' style="color:#b91c1c;font-weight:700;background:#fef2f2;-webkit-print-color-adjust:exact;print-color-adjust:exact"' : ''}>${formatearNota(numero(nota.nota))} / 10</td></tr>
                     <tr><th>Observación del docente</th><td>${escapeHtml(nota.observacion||'-')}</td></tr>
                     <tr><th>Verificado por</th><td>${escapeHtml(nota.docente||'-')} — ${escapeHtml(nptFormatoFechaHora(nota.fechaVerificacion))}</td></tr>
                     ${esRec ? `<tr><th>Nota original</th><td>${notaOriginalRef !== null ? formatearNota(notaOriginalRef) + ' / 10' : 'No registrada'}</td></tr>
