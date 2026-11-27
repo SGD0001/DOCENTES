@@ -14480,26 +14480,30 @@ video {
             gruposAsistencia.forEach(grupo => {
                 const alumnosGrupo = estudiantes.filter(est => est.curso === grupo.curso && est.paralelo === grupo.paralelo);
                 if (!alumnosGrupo.length) return;
-                const observacionesCurso = [...new Set(grupo.sesiones.filter(s => s.observacionCurso).map(s => s.fecha + ': ' + s.observacionCurso))];
+                const hayObsCurso = grupo.sesiones.some(s => s.observacionCurso);
+                const filasClases = grupo.sesiones.map((sesion, idx) => {
+                    const tema = asistenciaTemas[sesion.fecha]?.[sesion.sid] || {};
+                    const temaTxt = [tema.unidad, tema.tema].filter(Boolean).join(' · ') || 'Sin tema registrado';
+                    return '<tr><td>' + (idx + 1) + '</td><td>' + escapeHtml(sesion.fecha + ' (' + asistenciaDia(sesion.fecha) + ')') + '</td><td>' + escapeHtml(sesion.clase.hora || '') + '</td><td>' + escapeHtml(temaTxt) + '</td>' + (hayObsCurso ? '<td>' + escapeHtml(sesion.observacionCurso || '') + '</td>' : '') + '</tr>';
+                }).join('');
+                const tablaClases = '<div class="resumen"><h3>Clases del período</h3><table class="asistencia-clases"><thead><tr><th>Clase</th><th>Fecha</th><th>Hora</th><th>Unidad / Tema</th>' + (hayObsCurso ? '<th>Observación del curso</th>' : '') + '</tr></thead><tbody>' + filasClases + '</tbody></table></div>';
                 const filasHtml = alumnosGrupo.map(est => {
                     const conteo = { presente: 0, ausente: 0, atraso: 0, justificado: 0, sinRegistro: 0 };
                     const detalle = [], novedades = [];
-                    grupo.sesiones.forEach(sesion => {
+                    grupo.sesiones.forEach((sesion, idx) => {
                         const reg = asistenciaRegistros[sesion.fecha]?.[sesion.sid]?.[est.cedula];
                         const estado = reg?.estado || '';
                         if (Object.prototype.hasOwnProperty.call(etiquetasEstado, estado)) conteo[estado]++;
                         else conteo.sinRegistro++;
-                        const tema = asistenciaTemas[sesion.fecha]?.[sesion.sid] || {};
-                        const temaTxt = [tema.unidad, tema.tema].filter(Boolean).join(' · ');
-                        detalle.push([sesion.fecha + ' (' + asistenciaDia(sesion.fecha) + ')', sesion.clase.hora || '', temaTxt ? 'Tema: ' + temaTxt : '', 'Estado: ' + (etiquetasEstado[estado] || 'Sin registrar'), reg?.observacion ? 'Novedad: ' + reg.observacion : ''].filter(Boolean).join(' · '));
+                        if (estado !== 'presente') detalle.push('Clase ' + (idx + 1) + ': ' + (etiquetasEstado[estado] || 'Sin registrar'));
                         if (reg?.observacion) novedades.push(sesion.fecha + ': ' + reg.observacion);
                     });
-                    const valores = [est.nombre, conteo.presente, conteo.ausente, conteo.atraso, conteo.justificado, conteo.sinRegistro, detalle.join('\n'), [...new Set(novedades)].join('\n')];
+                    const valores = [est.nombre, conteo.presente, conteo.ausente, conteo.atraso, conteo.justificado, conteo.sinRegistro, detalle.length ? detalle.join('\n') : 'Asistió a todas las clases', [...new Set(novedades)].join('\n')];
                     if (conteo.ausente > 0) totalConFaltas++; else if (conteo.justificado > 0) totalSoloJustificadas++;
                     const claseCelda = i => i === 0 ? (conteo.ausente > 0 ? ' class="est-falta"' : conteo.justificado > 0 ? ' class="est-justificada"' : '') : i === 6 ? ' class="col-detalle"' : i === 7 ? ' class="col-novedades"' : '';
                     return '<tr>' + valores.map((v, i) => '<td' + claseCelda(i) + '>' + escapeHtml(v).replace(/\n/g, '<br>') + '</td>').join('') + '</tr>';
                 }).join('');
-                const contexto = '<div class="filtro"><strong>Clases programadas:</strong> ' + grupo.sesiones.length + ' · <strong>Estudiantes:</strong> ' + alumnosGrupo.length + (observacionesCurso.length ? '<br><strong>Observaciones del curso:</strong><br>' + observacionesCurso.map(escapeHtml).join('<br>') : '') + '</div>';
+                const contexto = '<div class="filtro"><strong>Clases programadas:</strong> ' + grupo.sesiones.length + ' · <strong>Estudiantes:</strong> ' + alumnosGrupo.length + '</div>' + tablaClases;
                 bloquesReporte += '<section class="asistencia-grupo"><h2>' + escapeHtml(grupo.curso) + ' · Paralelo ' + escapeHtml(grupo.paralelo) + ' · ' + escapeHtml(grupo.asignatura || 'Materia no especificada') + '</h2>' + contexto + '<div class="asistencia-reporte-wrap"><table class="asistencia-reporte"><thead><tr>' + cabeceras.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>' + filasHtml + '</tbody></table></div></section>';
             });
             const tabla = '<div class="filtro"><strong>Fechas del reporte:</strong> ' + escapeHtml(desde) + ' al ' + escapeHtml(hasta) + ' · <strong>Curso:</strong> ' + escapeHtml(cursoSel || 'Todos') + ' · <strong>Paralelo:</strong> ' + escapeHtml(paraleloSel || 'Todos') + '</div>' + (totalConFaltas + totalSoloJustificadas ? '<p class="meta">Nombres resaltados: <span class="est-falta">con faltas</span>' + (totalSoloJustificadas ? ' · <span class="est-justificada">solo con faltas justificadas</span>' : '') + '. Con faltas: ' + totalConFaltas + (totalSoloJustificadas ? ' · Solo justificadas: ' + totalSoloJustificadas : '') + '.</p>' : '') + '<style>.asistencia-reporte-wrap{overflow-x:auto}table.asistencia-reporte{font-size:10px}.asistencia-reporte td.col-detalle,.asistencia-reporte td.col-novedades{font-size:9px}.asistencia-reporte td:first-child{font-weight:700}.asistencia-reporte thead{display:table-header-group}.asistencia-reporte tr{break-inside:avoid;page-break-inside:avoid}.asistencia-grupo{break-after:page;page-break-after:always}.asistencia-grupo:last-of-type{break-after:auto;page-break-after:auto}@media print{.asistencia-reporte-wrap{overflow:visible}table.asistencia-reporte{font-size:8.5px}.asistencia-reporte td.col-detalle,.asistencia-reporte td.col-novedades{font-size:8px}}</style>' + bloquesReporte;
