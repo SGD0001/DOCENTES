@@ -2488,7 +2488,7 @@ video {
                     </section>
                     <section class="bg-slate-50 rounded-xl p-4">
                         <div class="flex flex-wrap justify-between items-end gap-3 mb-3"><div><h4 class="font-bold text-sm">📊 Reporte de asistencia y novedades</h4><p class="text-[11px] text-slate-500 mt-1">Incluye asignatura, asistencia, novedades individuales y observaciones generales del curso dentro del rango seleccionado.</p></div><button onclick="generarReporteAsistencia()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold">👁️ Previsualizar reporte</button></div>
-                        <div class="flex flex-wrap gap-3"><label class="text-xs">Desde <input id="asistencia-reporte-desde" type="date" class="ml-1 px-2 py-1 border rounded"></label><label class="text-xs">Hasta <input id="asistencia-reporte-hasta" type="date" class="ml-1 px-2 py-1 border rounded"></label></div>
+                        <div class="flex flex-wrap gap-3"><label class="text-xs">Desde <input id="asistencia-reporte-desde" type="date" class="ml-1 px-2 py-1 border rounded"></label><label class="text-xs">Hasta <input id="asistencia-reporte-hasta" type="date" class="ml-1 px-2 py-1 border rounded"></label><label class="text-xs">Curso <select id="asistencia-reporte-curso" class="ml-1 px-2 py-1 border rounded"><option value="">Todos</option></select></label><label class="text-xs">Paralelo <select id="asistencia-reporte-paralelo" class="ml-1 px-2 py-1 border rounded"><option value="">Todos</option></select></label></div>
                     </section>
                 </div>
 
@@ -12465,7 +12465,7 @@ video {
         }
         function sgcFilasReporteHtml(titulo, contenido) {
             const doc = new DOMParser().parseFromString('<!doctype html><html><body><main>' + contenido + '</main></body></html>', 'text/html');
-            const filas = [[titulo], ['Docente', nombreDocenteConfigurado()], ['Generado', nptFormatoFechaHora(new Date())], []];
+            const filas = [[titulo], ['Docente', nombreDocenteConfigurado()], ['Período académico', periodoReporteTexto()], ['Generado', nptFormatoFechaHora(new Date())], []];
             doc.querySelectorAll('h1,h2,h3,p,.filtro,table').forEach(nodo => {
                 if (nodo.tagName === 'TABLE') {
                     nodo.querySelectorAll('tr').forEach(tr => {
@@ -12539,10 +12539,17 @@ video {
             }
             abrirPrevisualizacionFilas(nombreArchivo, filas, ventanaPreabierta, metadatos);
         }
-        function abrirPrevisualizacionFilas(nombreArchivo,filas,ventanaPreabierta=null,metadatos=[]) {
+        async function abrirPrevisualizacionFilas(nombreArchivo,filas,ventanaPreabierta=null,metadatos=[]) {
             if(!Array.isArray(filas)||!filas.length){alert('La hoja de cálculo no contiene filas para previsualizar.');return;}
             const nombre=sgcNombreXlsx(nombreArchivo||'reporte.xlsx');
             const titulo=nombre.replace(/\.xlsx$/i,'').replace(/[_-]+/g,' ');
+            const ocultas = await sgcSeleccionarColumnas(titulo, filas[0]);
+            if (ocultas === null) { if (ventanaPreabierta && !ventanaPreabierta.closed) ventanaPreabierta.close(); return; }
+            if (ocultas.length) {
+                const quitar = new Set(filas[0].map((h, i) => ocultas.includes(sgcEtiquetaColumna(h)) ? i : -1).filter(i => i >= 0));
+                filas = filas.map(f => f.filter((_, i) => !quitar.has(i)));
+            }
+            metadatos = [['Período académico', periodoReporteTexto()], ...metadatos.filter(m => !/^per[ií]odo/i.test(String(m[0] || '')))];
             const filasXlsx = [...metadatos.map(f => f.slice()), [] , ...filas.map(f => f.slice())];
             const filaCabecera = metadatos.length + 1;
             filasXlsx[filaCabecera].__cabecera = true;
@@ -12550,7 +12557,7 @@ video {
             const cab=filas[0];
             const th=cab.map(v=>'<th>'+escapeHtml(v)+'</th>').join('');
             const tbody=filas.slice(1).map(f=>'<tr>'+cab.map((_,i)=>'<td>'+escapeHtml(f[i]??'')+'</td>').join('')+'</tr>').join('');
-            const metaHtml=metadatos.length?'<div class="filtro">'+metadatos.map(f=>'<div><strong>'+escapeHtml(f[0])+':</strong> '+escapeHtml(f[1])+'</div>').join('')+'</div>':'';
+            const metaHtml=metadatos.length>1?'<div class="filtro">'+metadatos.slice(1).map(f=>'<div><strong>'+escapeHtml(f[0])+':</strong> '+escapeHtml(f[1])+'</div>').join('')+'</div>':'';
             const contenido='<div class="actions"><a class="xlsx-download" href="'+urlXlsx+'" download="'+escapeHtml(nombre)+'">📊 Descargar hoja de cálculo (.xlsx)</a></div>'+
                 metaHtml+'<div class="csv-table-wrap"><table class="csv-table"><thead><tr>'+th+'</tr></thead><tbody>'+tbody+'</tbody></table></div>'+
                 '<style>@page{size:landscape;margin:8mm}.csv-table-wrap{overflow-x:auto}table.csv-table{table-layout:auto;font-size:8px}.csv-table th,.csv-table td{padding:3px 4px;font-size:8px}@media print{.csv-table-wrap{overflow:visible}table.csv-table{width:100%;table-layout:fixed}}.xlsx-download{display:inline-block;background:#047857;color:#fff;text-decoration:none;padding:8px 12px;border-radius:6px;font-weight:700}</style>';
@@ -12606,6 +12613,7 @@ video {
     <header>
         <h1>${escapeHtml(titulo)}</h1>
         <div class="meta"><strong>Docente:</strong> ${escapeHtml(nombreDocenteConfigurado())}</div>
+        <div class="meta"><strong>Período académico:</strong> ${escapeHtml(periodoReporteTexto())}</div>
         <div class="meta">Generado: ${escapeHtml(nptFormatoFechaHora(new Date()))}</div>
     </header>
     <div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>
@@ -12645,8 +12653,94 @@ video {
             });
             return doc.body.innerHTML;
         }
-        function abrirODescargarReporte(titulo, contenido, nombreArchivo, orientacion = 'portrait', ventanaPreabierta = null) {
-            const contenidoLimpio = sgcSanearReporteHtml(titulo, contenido);
+        // ==================== Selección de columnas e identificación del período en reportes ====================
+        // Autor del sistema: Mgt. César Godoy R.
+        const SGC_COLUMNAS_FIJAS = /^(#|estudiantes?|n[oó]mina|nombres?|n[º°]\.?)$/i;
+        function periodoReporteTexto() { return String(cfgPeriodoActivo?.nombre || '').trim() || 'No configurado'; }
+        function sgcEtiquetaColumna(t) { return String(t ?? '').replace(/\s+/g, ' ').trim(); }
+        function sgcClaveColumnasReporte(titulo) {
+            return String(titulo || 'reporte').split(/\s[—–-]\s/)[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[0-9]+/g, '').replace(/[^a-z]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'reporte';
+        }
+        function sgcLeerColumnasOcultas(clave) {
+            try { const m = JSON.parse(localStorage.getItem('sgcColumnasReporte') || '{}'); return Array.isArray(m[clave]) ? m[clave].map(String) : []; } catch (_) { return []; }
+        }
+        function sgcGuardarColumnasOcultas(clave, lista) {
+            try { const m = JSON.parse(localStorage.getItem('sgcColumnasReporte') || '{}'); m[clave] = lista; localStorage.setItem('sgcColumnasReporte', JSON.stringify(m)); } catch (_) {}
+        }
+        // Ventana con una casilla por columna. Devuelve la lista de etiquetas OCULTAS, o null si se cancela.
+        // Las columnas de identificación (#, Estudiante, Nómina) no se pueden quitar.
+        function sgcSeleccionarColumnas(titulo, etiquetas) {
+            const unicas = [...new Set((etiquetas || []).map(sgcEtiquetaColumna).filter(Boolean))];
+            if (!unicas.some(e => !SGC_COLUMNAS_FIJAS.test(e))) return Promise.resolve([]);
+            const clave = sgcClaveColumnasReporte(titulo);
+            const previas = new Set(sgcLeerColumnasOcultas(clave));
+            return new Promise(resolve => {
+                document.getElementById('sgc-selector-columnas')?.remove();
+                const capa = document.createElement('div');
+                capa.id = 'sgc-selector-columnas'; capa.setAttribute('role', 'dialog'); capa.setAttribute('aria-modal', 'true'); capa.setAttribute('aria-label', 'Columnas del reporte');
+                capa.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,sans-serif';
+                const caja = document.createElement('div');
+                caja.style.cssText = 'background:#fff;color:#0f172a;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.35)';
+                const h = document.createElement('h2'); h.textContent = 'Columnas a imprimir'; h.style.cssText = 'font-size:17px;font-weight:700;margin:0 0 2px';
+                const sub = document.createElement('p'); sub.textContent = String(titulo || 'Reporte') + ' · Período: ' + periodoReporteTexto(); sub.style.cssText = 'font-size:12px;color:#475569;margin:0 0 12px';
+                caja.append(h, sub);
+                const cajas = [];
+                unicas.forEach(et => {
+                    const fija = SGC_COLUMNAS_FIJAS.test(et);
+                    const lab = document.createElement('label'); lab.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 4px;font-size:14px;' + (fija ? 'color:#64748b' : 'cursor:pointer');
+                    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = fija || !previas.has(et); cb.disabled = fija; cb.dataset.etiqueta = et;
+                    const tx = document.createElement('span'); tx.textContent = et + (fija ? ' (obligatoria)' : '');
+                    lab.append(cb, tx); caja.appendChild(lab); cajas.push(cb);
+                });
+                const aviso = document.createElement('p'); aviso.style.cssText = 'font-size:12px;color:#b91c1c;margin:8px 0 0;min-height:16px'; aviso.setAttribute('role', 'alert');
+                const fila = document.createElement('div'); fila.style.cssText = 'display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap';
+                const izq = document.createElement('div'); izq.style.cssText = 'display:flex;gap:6px';
+                const mk = (t, f) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.style.cssText = 'padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;font:600 12px system-ui,sans-serif;cursor:pointer'; b.addEventListener('click', f); return b; };
+                izq.append(mk('Marcar todas', () => cajas.forEach(c => { c.checked = true; })), mk('Solo obligatorias', () => cajas.forEach(c => { c.checked = c.disabled; })));
+                const der = document.createElement('div'); der.style.cssText = 'display:flex;gap:6px';
+                const cerrar = r => { document.removeEventListener('keydown', alTecla, true); capa.remove(); resolve(r); };
+                const cancelar = mk('Cancelar', () => cerrar(null));
+                const ok = mk('Generar reporte', () => {
+                    if (!cajas.some(c => c.checked)) { aviso.textContent = 'Selecciona al menos una columna.'; return; }
+                    const ocultas = cajas.filter(c => !c.checked).map(c => c.dataset.etiqueta);
+                    sgcGuardarColumnasOcultas(clave, ocultas); cerrar(ocultas);
+                });
+                ok.style.cssText = 'padding:6px 14px;border:0;border-radius:8px;background:#0369a1;color:#fff;font:700 12px system-ui,sans-serif;cursor:pointer';
+                const alTecla = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(null); } };
+                document.addEventListener('keydown', alTecla, true);
+                der.append(cancelar, ok); fila.append(izq, der); caja.append(aviso, fila); capa.appendChild(caja); document.body.appendChild(capa);
+                ok.focus();
+            });
+        }
+        // Tablas de datos con una sola fila de encabezado y sin celdas combinadas (las de resumen quedan fuera).
+        function sgcTablasSeleccionables(doc) {
+            return [...doc.querySelectorAll('table')].filter(t => {
+                if (t.closest('.resumen')) return false;
+                const filas = [...t.rows]; if (filas.length < 2) return false;
+                const c0 = [...filas[0].cells]; if (c0.length < 2 || !c0.every(c => c.tagName === 'TH')) return false;
+                return filas.every(r => r.cells.length === c0.length && [...r.cells].every(c => c.colSpan <= 1 && c.rowSpan <= 1));
+            });
+        }
+        // Devuelve el HTML sin las columnas descartadas por el usuario, o null si canceló.
+        async function sgcAplicarSeleccionColumnas(titulo, contenido) {
+            const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + contenido + '</body></html>', 'text/html');
+            const tablas = sgcTablasSeleccionables(doc);
+            if (!tablas.length) return contenido;
+            const etiquetas = []; tablas.forEach(t => [...t.rows[0].cells].forEach(c => etiquetas.push(c.textContent)));
+            const ocultas = await sgcSeleccionarColumnas(titulo, etiquetas);
+            if (ocultas === null) return null;
+            if (!ocultas.length) return contenido;
+            tablas.forEach(t => {
+                const quitar = [...t.rows[0].cells].map((c, i) => ocultas.includes(sgcEtiquetaColumna(c.textContent)) ? i : -1).filter(i => i >= 0).sort((a, b) => b - a);
+                if (quitar.length === t.rows[0].cells.length) { t.remove(); return; }
+                [...t.rows].forEach(r => quitar.forEach(i => r.cells[i]?.remove()));
+            });
+            return doc.body.innerHTML;
+        }
+        async function abrirODescargarReporte(titulo, contenido, nombreArchivo, orientacion = 'portrait', ventanaPreabierta = null) {
+            let contenidoLimpio = sgcSanearReporteHtml(titulo, contenido);
+            contenidoLimpio = await sgcAplicarSeleccionColumnas(titulo, contenidoLimpio);
+            if (contenidoLimpio === null) { if (ventanaPreabierta && !ventanaPreabierta.closed) ventanaPreabierta.close(); return; }
             const filasExcel = sgcFilasReporteHtml(titulo, contenidoLimpio);
             const nombreHoja = sgcNombreXlsx(nombreArchivo);
             const urlHoja = URL.createObjectURL(sgcCrearXlsx(filasExcel, false));
@@ -12721,8 +12815,7 @@ video {
             if (!alumnos.length) { alert('No hay estudiantes para generar el reporte con los filtros actuales.'); return; }
             const t = trimestresEfectivos().find(x => x.num === numTrim);
             if (!t) { alert('No se encontró el trimestre seleccionado.'); return; }
-            const periodo = cfgPeriodoActivo?.nombre || 'Período no configurado';
-            let html = `<div class="filtro"><strong>Período académico:</strong> ${escapeHtml(periodo)}<br><strong>Trimestre:</strong> ${escapeHtml(t.label)}${t.meses ? ' ('+escapeHtml(t.meses)+')' : ''}<br><strong>Estudiantes incluidos:</strong> ${alumnos.length}<br><strong>Solicitudes de recuperación aprobadas en el trimestre:</strong> ${alumnos.reduce((total, e) => total + nptConteoSolicitudesAprobadas(e.cedula, t.num), 0)}</div>
+            let html = `<div class="filtro"><strong>Trimestre:</strong> ${escapeHtml(t.label)}${t.meses ? ' ('+escapeHtml(t.meses)+')' : ''}<br><strong>Estudiantes incluidos:</strong> ${alumnos.length}<br><strong>Solicitudes de recuperación aprobadas en el trimestre:</strong> ${alumnos.reduce((total, e) => total + nptConteoSolicitudesAprobadas(e.cedula, t.num), 0)}</div>
                 <style>
                     .reporte-notas-curso{table-layout:auto}
                     .reporte-notas-curso th,.reporte-notas-curso td{text-align:center;vertical-align:middle}
@@ -14064,6 +14157,7 @@ video {
             // El calendario mensual fue retirado del módulo de asistencia.
             // Las excepciones no laborables se administran en Configuración > Calendario académico.
             actualizarEstadoFechaAsistencia();
+            poblarFiltrosReporteAsistencia();
         }
         function asistenciaMoverMes(delta) { return; }
         async function asistenciaSeleccionarFecha(fecha) {
@@ -14242,11 +14336,31 @@ video {
                 if(btn){btn.disabled=false;btn.textContent=textoBtn;}
             }
         }
+        // Cursos y paralelos que realmente figuran en el horario del docente (conserva la selección actual).
+        function poblarFiltrosReporteAsistencia() {
+            const selC = document.getElementById('asistencia-reporte-curso'), selP = document.getElementById('asistencia-reporte-paralelo');
+            if (!selC || !selP) return;
+            const cursoPrev = selC.value, paraPrev = selP.value;
+            const cursos = [...new Set(horarioDocente.map(x => x.curso))].sort((a, b) => String(a).localeCompare(String(b), 'es', { numeric: true }));
+            const llenar = (sel, valores, prev) => {
+                sel.textContent = '';
+                const t = document.createElement('option'); t.value = ''; t.textContent = 'Todos'; sel.appendChild(t);
+                valores.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+                sel.value = valores.includes(prev) ? prev : '';
+            };
+            llenar(selC, cursos, cursoPrev);
+            const paralelos = [...new Set(horarioDocente.filter(x => !selC.value || x.curso === selC.value).map(x => x.paralelo))].sort((a, b) => String(a).localeCompare(String(b), 'es', { numeric: true }));
+            llenar(selP, paralelos, paraPrev);
+            if (!selC.dataset.enlazado) { selC.dataset.enlazado = '1'; selC.addEventListener('change', poblarFiltrosReporteAsistencia); }
+        }
         async function generarReporteAsistencia() {
             if (!horarioDocente.length) return alert('Primero configura el horario en Configuración.');
             const desde = document.getElementById('asistencia-reporte-desde').value;
             const hasta = document.getElementById('asistencia-reporte-hasta').value;
             if (!desde || !hasta || desde > hasta) return alert('Selecciona un rango de fechas válido.');
+            const cursoSel = document.getElementById('asistencia-reporte-curso')?.value || '';
+            const paraleloSel = document.getElementById('asistencia-reporte-paralelo')?.value || '';
+            if (!horarioDocente.some(x => (!cursoSel || x.curso === cursoSel) && (!paraleloSel || x.paralelo === paraleloSel))) return alert('El horario no tiene clases para el curso y paralelo seleccionados.');
 
             const ventanaPrevia = window.open('', '_blank');
             if (ventanaPrevia && !ventanaPrevia.closed) {
@@ -14268,12 +14382,12 @@ video {
 
             const sesiones = [];
             fechas.forEach(fecha => {
-                horarioDocente.filter(x => normalizarDiaHorario(x.dia) === normalizarDiaHorario(asistenciaDia(fecha)))
+                horarioDocente.filter(x => normalizarDiaHorario(x.dia) === normalizarDiaHorario(asistenciaDia(fecha)) && (!cursoSel || x.curso === cursoSel) && (!paraleloSel || x.paralelo === paraleloSel))
                     .forEach(clase => sesiones.push({ fecha, clase, sid: asistenciaSesionId(clase), observacionCurso: '' }));
             });
             if (!sesiones.length) {
                 if (ventanaPrevia && !ventanaPrevia.closed) ventanaPrevia.close();
-                return alert('No hay clases configuradas en el horario dentro del rango seleccionado.');
+                return alert('No hay clases configuradas en el horario dentro del rango y el curso/paralelo seleccionados.');
             }
 
             const cacheObservacionesCurso = new Map();
@@ -14320,12 +14434,12 @@ video {
                         if (reg?.observacion) novedades.push(sesion.fecha + ': ' + reg.observacion);
                     });
                     const valores = [est.nombre, conteo.presente, conteo.ausente, conteo.atraso, conteo.justificado, conteo.sinRegistro, detalle.join('\n'), [...new Set(novedades)].join('\n')];
-                    return '<tr>' + valores.map(v => '<td>' + escapeHtml(v).replace(/\n/g, '<br>') + '</td>').join('') + '</tr>';
+                    return '<tr>' + valores.map((v, i) => '<td' + (i === 6 ? ' class="col-detalle"' : i === 7 ? ' class="col-novedades"' : '') + '>' + escapeHtml(v).replace(/\n/g, '<br>') + '</td>').join('') + '</tr>';
                 }).join('');
                 const contexto = '<div class="filtro"><strong>Clases programadas:</strong> ' + grupo.sesiones.length + ' · <strong>Estudiantes:</strong> ' + alumnosGrupo.length + (observacionesCurso.length ? '<br><strong>Observaciones del curso:</strong><br>' + observacionesCurso.map(escapeHtml).join('<br>') : '') + '</div>';
-                bloquesReporte += '<h2>' + escapeHtml(grupo.curso) + ' · Paralelo ' + escapeHtml(grupo.paralelo) + ' · ' + escapeHtml(grupo.asignatura || 'Materia no especificada') + '</h2>' + contexto + '<div class="asistencia-reporte-wrap"><table class="asistencia-reporte"><thead><tr>' + cabeceras.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>' + filasHtml + '</tbody></table></div>';
+                bloquesReporte += '<section class="asistencia-grupo"><h2>' + escapeHtml(grupo.curso) + ' · Paralelo ' + escapeHtml(grupo.paralelo) + ' · ' + escapeHtml(grupo.asignatura || 'Materia no especificada') + '</h2>' + contexto + '<div class="asistencia-reporte-wrap"><table class="asistencia-reporte"><thead><tr>' + cabeceras.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>' + filasHtml + '</tbody></table></div></section>';
             });
-            const tabla = '<div class="filtro"><strong>Período del reporte:</strong> ' + escapeHtml(desde) + ' al ' + escapeHtml(hasta) + '</div><style>.asistencia-reporte-wrap{overflow-x:auto}table.asistencia-reporte{table-layout:auto;font-size:10px}.asistencia-reporte th,.asistencia-reporte td{padding:6px 7px;vertical-align:top}.asistencia-reporte th{white-space:nowrap}.asistencia-reporte td{white-space:pre-line;min-width:72px}.asistencia-reporte td:nth-child(1){min-width:150px;font-weight:700}.asistencia-reporte td:nth-child(7){min-width:280px}.asistencia-reporte td:nth-child(8){min-width:180px}.asistencia-reporte thead{display:table-header-group}.asistencia-reporte tr{break-inside:avoid;page-break-inside:avoid}@media print{.asistencia-reporte-wrap{overflow:visible}table.asistencia-reporte{width:100%;font-size:8px;table-layout:fixed}.asistencia-reporte th,.asistencia-reporte td{padding:4px;overflow-wrap:anywhere}}</style>' + bloquesReporte;
+            const tabla = '<div class="filtro"><strong>Fechas del reporte:</strong> ' + escapeHtml(desde) + ' al ' + escapeHtml(hasta) + ' · <strong>Curso:</strong> ' + escapeHtml(cursoSel || 'Todos') + ' · <strong>Paralelo:</strong> ' + escapeHtml(paraleloSel || 'Todos') + '</div><style>.asistencia-reporte-wrap{overflow-x:auto}table.asistencia-reporte{table-layout:auto;font-size:10px}.asistencia-reporte th,.asistencia-reporte td{padding:6px 7px;vertical-align:top}.asistencia-reporte th{white-space:nowrap}.asistencia-reporte td{white-space:pre-line;min-width:72px}.asistencia-reporte td:nth-child(1){min-width:150px;font-weight:700}.asistencia-reporte td.col-detalle{min-width:280px}.asistencia-reporte td.col-novedades{min-width:180px}.asistencia-grupo{break-after:page;page-break-after:always}.asistencia-grupo:last-of-type{break-after:auto;page-break-after:auto}.asistencia-reporte thead{display:table-header-group}.asistencia-reporte tr{break-inside:avoid;page-break-inside:avoid}@media print{.asistencia-reporte-wrap{overflow:visible}table.asistencia-reporte{width:100%;font-size:8px;table-layout:fixed}.asistencia-reporte th,.asistencia-reporte td{padding:4px;overflow-wrap:anywhere}}</style>' + bloquesReporte;
             abrirODescargarReporte('Reporte de Asistencia y Novedades', tabla,
                 'reporte_asistencia_novedades_' + desde + '_' + hasta + '.html', 'landscape', ventanaPrevia);
         }
