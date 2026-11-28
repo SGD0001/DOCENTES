@@ -2262,7 +2262,7 @@ video {
             <div class="text-center mb-6">
                 <span class="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">SGC · Sistema de Gestión de Calificaciones</span>
                 <h3 class="text-2xl font-black mt-2">Ingreso del Estudiante</h3>
-                <p class="text-slate-500 text-sm">Ingresa tu correo institucional, tu cédula y tu contraseña del sistema.</p>
+                <p class="text-slate-500 text-sm">Ingresa tu correo institucional, tu cédula y tu contraseña de acceso.</p>
             </div>
             <div class="space-y-5 max-w-sm mx-auto">
                 <div>
@@ -2284,11 +2284,11 @@ video {
                         class="w-full px-4 py-3 bg-slate-50 border rounded-xl text-lg font-mono tracking-wider focus:ring-2 focus:ring-brand-500">
                 </div>
                 <div>
-                    <label for="input-clave-estudiante" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contraseña del sistema</label>
+                    <label for="input-clave-estudiante" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contraseña de acceso</label>
                     <div class="relative">
                         <input type="password" id="input-clave-estudiante" autocomplete="current-password" oninput="ocultarAvisosLoginEstudiante()"
                             class="w-full pl-4 pr-12 py-3 bg-slate-50 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500"
-                            placeholder="Contraseña del sistema">
+                            placeholder="Escriba su contraseña en este sistema">
                         <button type="button" onclick="alternarVisibilidadClave('input-clave-estudiante', this)" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña"
                             class="btn-ver-clave absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-brand-600 focus:outline-none focus:text-brand-600">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -3483,7 +3483,7 @@ video {
             if (SGC_INSTITUCIONES && Object.keys(SGC_INSTITUCIONES).length > 1) {
                 const chip = document.createElement('button'); chip.type = 'button'; chip.id = 'sgc-cambiar-institucion';
                 chip.textContent = '🏫 ' + (SGC_INSTITUCIONES[idElegido]?.nombre || idElegido) + ' · Cambiar';
-                chip.style.cssText = 'position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:9000;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 10px;border:1px solid #cbd5e1;border-radius:999px;background:rgba(255,255,255,.92);color:#334155;font:600 11px system-ui,sans-serif;cursor:pointer';
+                chip.style.cssText = 'display:none;position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:9000;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 10px;border:1px solid #cbd5e1;border-radius:999px;background:rgba(255,255,255,.92);color:#334155;font:600 11px system-ui,sans-serif;cursor:pointer';
                 chip.addEventListener('click', () => sgcMostrarSelectorInstitucion(SGC_INSTITUCIONES, SGC_INSTITUCION_ID, false));
                 document.body.appendChild(chip);
             }
@@ -6211,6 +6211,9 @@ video {
             document.querySelectorAll('.sgc-fw:not(.hidden)').forEach(w => sgcFwCerrar(w.id));
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
+            // El control de institución es solo del docente: no se muestra a estudiantes.
+            const chipInst = document.getElementById('sgc-cambiar-institucion');
+            if (chipInst) chipInst.style.display = (id === 'screen-docente-login' || id === 'screen-docente-panel') ? '' : 'none';
         }
         function volverAlInicio() {
             detenerTimerPreguntaExamen();
